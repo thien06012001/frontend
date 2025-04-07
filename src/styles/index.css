@@ -1,0 +1,30 @@
+@import 'tailwindcss';
+@theme {
+  --breakpoint-smartphone: 480px;
+  --breakpoint-tablet: 640px;
+  --breakpoint-ipad: 768px;
+  --breakpoint-laptop: 1024px;
+  --breakpoint-desktop: 1280px;
+}
+@utility container {
+  padding-inline: 2rem;
+  margin-inline: auto;
+
+  @variant sm {
+    width: 640px;
+  }
+
+  @variant md {
+    width: 768px;
+  }
+  @variant lg {
+    width: 1024px;
+  }
+
+  @variant xl {
+    width: 1280px;
+  }
+  @variant 2xl {
+    width: 1400px;
+  }
+}
