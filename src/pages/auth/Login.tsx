@@ -33,7 +33,7 @@ function Login() {
               className="p-2 rounded-md border-[#CBD5E1] border"
             />
           </div>
-          <button className="bg-[#FF9870] text-white w-full p-2.5 rounded-md cursor-pointer">
+          <button className="bg-[#FF9870] text-white w-full my-2 p-2.5 rounded-md cursor-pointer">
             Sign In
           </button>
           <div className="flex justify-between items-center w-full my-2">

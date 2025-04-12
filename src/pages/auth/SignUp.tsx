@@ -134,7 +134,7 @@ function SignUp() {
 
           <button
             type="submit"
-            className="bg-[#FF9870] text-white w-full p-2.5 rounded-md cursor-pointer"
+            className="bg-[#FF9870] my-2 text-white w-full p-2.5 rounded-md cursor-pointer"
           >
             Sign Up
           </button>
