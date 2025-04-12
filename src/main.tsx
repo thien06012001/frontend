@@ -8,6 +8,8 @@ import { createBrowserRouter, RouterProvider } from 'react-router';
 import Home from './pages/Home';
 import NotFound from './pages/NotFound';
 import Users from './pages/Users';
+import Login from './pages/auth/Login';
+import SignUp from './pages/auth/SignUp';
 const router = createBrowserRouter([
   {
     path: '/',
@@ -17,6 +19,14 @@ const router = createBrowserRouter([
   {
     path: '/users',
     element: <Users />,
+  },
+  {
+    path: '/login',
+    element: <Login />,
+  },
+  {
+    path: '/signup',
+    element: <SignUp />,
   },
 ]);
 createRoot(document.getElementById('root')!).render(

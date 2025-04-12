@@ -5,4 +5,7 @@ export const api_endpoints = {
     update: (id: string) => `/users/${id}`,
     delete: (id: string) => `/users/${id}`,
   },
+  auth: {
+    REGISTER: '/auth/register', // Added registration endpoint here
+  },
 };
