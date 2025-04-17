@@ -1,5 +1,30 @@
-function Button() {
-  return <button>Button</button>;
-}
+import React from 'react';
+
+type ButtonProps = {
+  type?: 'button' | 'submit' | 'reset';
+  children: React.ReactNode;
+  onClick?: () => void;
+  className?: string;
+  disabled?: boolean;
+};
+
+const Button = ({
+  type = 'button',
+  children,
+  onClick,
+  className = '',
+  disabled = false,
+}: ButtonProps) => {
+  return (
+    <button
+      type={type}
+      onClick={onClick}
+      disabled={disabled}
+      className={`bg-[#FF9870] text-white p-2.5 rounded-md cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${className}`}
+    >
+      {children}
+    </button>
+  );
+};
 
 export default Button;

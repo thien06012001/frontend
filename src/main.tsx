@@ -10,23 +10,24 @@ import NotFound from './pages/NotFound';
 import Users from './pages/Users';
 import Login from './pages/auth/Login';
 import SignUp from './pages/auth/SignUp';
+import Layout from './components/shared/Layout';
 const router = createBrowserRouter([
   {
     path: '/',
-    element: <Home />,
+    element: <Layout />, // <- Sidebar layout
     errorElement: <NotFound />,
-  },
-  {
-    path: '/users',
-    element: <Users />,
+    children: [
+      { path: '/', element: <Home /> },
+      { path: '/users', element: <Users /> },
+    ],
   },
   {
     path: '/login',
-    element: <Login />,
+    element: <Login />, // <- No sidebar
   },
   {
     path: '/signup',
-    element: <SignUp />,
+    element: <SignUp />, // <- No sidebar
   },
 ]);
 createRoot(document.getElementById('root')!).render(

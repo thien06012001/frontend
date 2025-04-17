@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { registerUser } from '../../handlers/api/auth.api';
 import { Link } from 'react-router';
+import Button from '../../components/ui/Button';
 // Assuming you've added the API function
 
 function SignUp() {
@@ -55,7 +56,7 @@ function SignUp() {
   return (
     <div className="flex h-screen container p-10">
       <section className="w-1/2 h-full border-[#9EB1C7] border rounded-l-md shadow-md py-16 px-10 flex flex-col justify-between">
-        <img src="auth-logo.png" alt="auth logo" className="mx-auto" />
+        <img src="logo.png" alt="logo" className="mx-auto" />
         <form
           onSubmit={handleSubmit}
           className="flex flex-col items-center justify-center"
@@ -132,12 +133,9 @@ function SignUp() {
             <p className="text-red-500 text-sm">{errorMessage}</p>
           )}
 
-          <button
-            type="submit"
-            className="bg-[#FF9870] my-2 text-white w-full p-2.5 rounded-md cursor-pointer"
-          >
+          <Button type="submit" className="w-full">
             Sign Up
-          </button>
+          </Button>
 
           <div className="flex space-x-0.5">
             <p>Already have an account?</p>

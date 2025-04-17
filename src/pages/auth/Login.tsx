@@ -1,4 +1,5 @@
 import { Link } from 'react-router';
+import Button from '../../components/ui/Button';
 
 function Login() {
   return (
@@ -7,7 +8,7 @@ function Login() {
         <img src="auth.png" alt="auth image" />
       </section>
       <section className="w-1/2 h-full border-[#9EB1C7] border rounded-r-md shadow-md py-16 px-10 space-y-36">
-        <img src="auth-logo.png" alt="auth logo" className="mx-auto" />
+        <img src="logo.png" alt="logo" className="mx-auto" />
         <form action="" className="flex flex-col items-center justify-center">
           <h1 className="font-bold text-2xl">Sign In</h1>
           <div className="flex flex-col my-2 w-full">
@@ -32,9 +33,7 @@ function Login() {
               className="p-2 rounded-md border-[#CBD5E1] border"
             />
           </div>
-          <button className="bg-[#FF9870] text-white w-full my-2 p-2.5 rounded-md cursor-pointer">
-            Sign In
-          </button>
+          <Button className="w-full">Sign In</Button>
           <div className="flex justify-between items-center w-full my-2">
             <Link to={'/'} className="underline text-[#FF9870]">
               For got password?
