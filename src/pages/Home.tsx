@@ -1,5 +1,6 @@
 import Statistic from '../components/pages/home/Statistic';
 import Tracking from '../components/pages/home/Tracking';
+
 function Home() {
   return (
     <>
