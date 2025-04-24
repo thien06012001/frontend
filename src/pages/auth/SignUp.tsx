@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { registerUser } from '../../handlers/api/auth.api';
 import { Link } from 'react-router';
 import Button from '../../components/ui/Button';
+import { api_endpoints } from '../../constants/urls';
+import { handleAPI } from '../../handlers/api-handler';
 // Assuming you've added the API function
 
 function SignUp() {
@@ -14,6 +15,7 @@ function SignUp() {
     phone: '',
   });
 
+  const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -35,22 +37,22 @@ function SignUp() {
 
     setErrorMessage(''); // Clear error message if passwords match
 
-    try {
-      const data = await registerUser({
-        email: formData.email,
-        name: formData.name,
-        username: formData.username,
-        password: formData.password,
-        phone: formData.phone,
-      });
-      console.log('User registered successfully:', data);
-      // Redirect or show success message here
-    } catch (error) {
-      setErrorMessage(
-        'Registration failed: ' +
-          (error instanceof Error ? error.message : 'Unknown error'),
-      );
+    setIsLoading(true);
+
+    const res = await handleAPI(api_endpoints.auth.REGISTER, {
+      method: 'POST',
+      body: JSON.stringify(formData),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    const result = await res.json();
+
+    if (!res.ok) {
+      setErrorMessage(result.error);
     }
+    setIsLoading(false);
   };
 
   return (
@@ -133,8 +135,12 @@ function SignUp() {
             <p className="text-red-500 text-sm">{errorMessage}</p>
           )}
 
-          <Button type="submit" className="w-full">
-            Sign Up
+          <Button disabled={isLoading} type="submit" className="w-full">
+            {isLoading ? (
+              <span className="font-semibold">Loading...</span>
+            ) : (
+              <span className="font-semibold">Sign Up</span>
+            )}
           </Button>
 
           <div className="flex space-x-0.5">

@@ -6,6 +6,9 @@ export const api_endpoints = {
     delete: (id: string) => `/users/${id}`,
   },
   auth: {
-    REGISTER: '/auth/register', // Added registration endpoint here
+    REGISTER: '/auth/register',
+    LOGIN: '/auth/login',
   },
 };
+
+export const BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
