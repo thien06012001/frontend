@@ -1,10 +1,13 @@
-import { Link } from 'react-router';
+import { Link, Navigate, redirect } from 'react-router';
 
 import Button from '../../components/ui/Button';
 
 import { useState } from 'react';
 import { handleAPI } from '../../handlers/api-handler';
 import { api_endpoints } from '../../constants/urls';
+import { useDispatch, useSelector } from 'react-redux';
+import { setUser } from '../../hooks/redux/slices/user.slice';
+import { RootState } from '../../hooks/redux/store';
 
 function Login() {
   const [isLoading, setIsLoading] = useState(false);
@@ -12,8 +15,12 @@ function Login() {
     email: '',
     password: '',
   });
-
+  const dispatch = useDispatch();
   const [errorMessage, setErrorMessage] = useState('');
+  const user = useSelector((state: RootState) => state.users.user);
+  if (user) {
+    return <Navigate to="/" replace />;
+  }
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prevData => ({
@@ -25,7 +32,6 @@ function Login() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    console.log(formData);
     const res = await handleAPI(api_endpoints.auth.LOGIN, {
       method: 'POST',
       body: JSON.stringify(formData),
@@ -38,6 +44,15 @@ function Login() {
 
     if (!res.ok) {
       setErrorMessage(result.error);
+    } else {
+      // Store user data in local storage
+      dispatch(
+        setUser({
+          id: result.data.id,
+          email: result.data.email,
+        }),
+      );
+      redirect('/');
     }
 
     setIsLoading(false);
@@ -48,7 +63,7 @@ function Login() {
         <img src="auth.png" alt="auth image" />
       </section>
 
-      <section className="w-1/2 h-full border-[#9EB1C7] border rounded-r-md shadow-md py-16 px-10 space-y-36">
+      <section className="w-1/2 h-full border-[#9EB1C7] border rounded-r-md shadow-md py-16 px-10 flex flex-col justify-around">
         <img src="logo.png" alt="logo" className="mx-auto" />
 
         <form
@@ -98,13 +113,13 @@ function Login() {
           </Button>
 
           <div className="flex justify-between items-center w-full my-2">
-            <Link to={'/'} className="underline text-[#FF9870]">
+            <Link to={'/'} className="underline text-primary">
               For got password?
             </Link>
 
             <div className="flex space-x-0.5">
               <p>Not register?</p>
-              <Link to={'/signup'} className="underline text-[#FF9870]">
+              <Link to={'/signup'} className="underline text-primary">
                 Create an account
               </Link>
             </div>

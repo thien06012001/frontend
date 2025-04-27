@@ -1,49 +1,25 @@
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import { http } from '../../../handlers/http.handler';
-export interface User {
-  id: string;
-  name: string;
-  email: string;
-  username: string;
-  created_at?: string;
-  updated_at?: string;
-}
+// userSlice.js
+import { createSlice } from '@reduxjs/toolkit';
 
-interface UsersState {
-  data: User[];
-  loading: boolean;
-  error: string | null;
-}
-
-const initialState: UsersState = {
-  data: [],
-  loading: false,
-  error: null,
+const initialState = {
+  user: JSON.parse(localStorage.getItem('user') || 'null'), // Load from localStorage if available
 };
 
-export const fetchUsers = createAsyncThunk('users/fetchAll', async () => {
-  return await http.get<{ data: User[] }>('/users').then(res => res.data);
-});
-
-const usersSlice = createSlice({
-  name: 'users',
+const userSlice = createSlice({
+  name: 'user',
   initialState,
-  reducers: {},
-  extraReducers: builder => {
-    builder
-      .addCase(fetchUsers.pending, state => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(fetchUsers.fulfilled, (state, action) => {
-        state.loading = false;
-        state.data = action.payload;
-      })
-      .addCase(fetchUsers.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.error.message || 'Failed to fetch users';
-      });
+  reducers: {
+    setUser: (state, action) => {
+      state.user = action.payload;
+      localStorage.setItem('user', JSON.stringify(action.payload)); // Sync with localStorage
+    },
+    logout: state => {
+      state.user = null;
+      localStorage.removeItem('user'); // Remove from localStorage on logout
+    },
   },
 });
 
-export default usersSlice.reducer;
+export const { setUser, logout } = userSlice.actions;
+
+export default userSlice.reducer;

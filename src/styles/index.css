@@ -1,5 +1,45 @@
 @import 'tailwindcss';
 @config '../../tailwind.config.ts';
+@theme inline {
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+}
+
+:root {
+  --primary: oklch(0.78 0.13536 41.7522);
+  --primary-foreground: oklch(0.985 0 0);
+}
 #root {
   @apply min-h-screen;
+}
+@keyframes slideIn {
+  0% {
+    opacity: 0;
+    transform: translateX(50px) translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0) translateY(0);
+  }
+}
+
+@keyframes collapse {
+  from {
+    opacity: 1;
+    height: 40px; /* or whatever height your toast is */
+    margin-bottom: 0.5rem;
+  }
+  to {
+    opacity: 0;
+    height: 0;
+    margin-bottom: 0;
+  }
+}
+
+.animate-slideIn {
+  animation: slideIn 0.3s ease forwards;
+}
+
+.animate-collapse {
+  animation: collapse 0.3s ease forwards;
 }

@@ -7,10 +7,11 @@ import store from './hooks/redux/store';
 import { createBrowserRouter, RouterProvider } from 'react-router';
 import Home from './pages/Home';
 import NotFound from './pages/NotFound';
-import Users from './pages/Users';
 import Login from './pages/auth/Login';
 import SignUp from './pages/auth/SignUp';
 import Layout from './components/shared/Layout';
+import { ToastProvider } from './hooks/context/ToastContext';
+import EventCreate from './pages/EventCreate';
 const router = createBrowserRouter([
   {
     path: '/',
@@ -18,7 +19,7 @@ const router = createBrowserRouter([
     errorElement: <NotFound />,
     children: [
       { path: '/', element: <Home /> },
-      { path: '/users', element: <Users /> },
+      { path: '/create-event', element: <EventCreate /> },
     ],
   },
   {
@@ -33,7 +34,9 @@ const router = createBrowserRouter([
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <Provider store={store}>
-      <RouterProvider router={router} />
+      <ToastProvider>
+        <RouterProvider router={router} />
+      </ToastProvider>
     </Provider>
   </StrictMode>,
 );

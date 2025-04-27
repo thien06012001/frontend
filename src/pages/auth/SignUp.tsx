@@ -56,16 +56,16 @@ function SignUp() {
   };
 
   return (
-    <div className="flex h-screen container p-10">
-      <section className="w-1/2 h-full border-[#9EB1C7] border rounded-l-md shadow-md py-16 px-10 flex flex-col justify-between">
+    <div className="flex h-screen container p-5">
+      <section className="w-1/2 h-full border-[#9EB1C7] border rounded-l-md shadow-md px-10 flex flex-col justify-around">
         <img src="logo.png" alt="logo" className="mx-auto" />
         <form
           onSubmit={handleSubmit}
           className="flex flex-col items-center justify-center"
         >
           <h1 className="font-bold text-2xl">Sign Up</h1>
-          <div className="flex flex-col my-2 w-full">
-            <label htmlFor="phone" className="font-semibold text-lg">
+          <div className="flex flex-col my-1 w-full">
+            <label htmlFor="phone" className="font-semibold">
               Phone Number
             </label>
             <input
@@ -77,8 +77,8 @@ function SignUp() {
               className="p-2 rounded-md border-[#CBD5E1] border"
             />
           </div>
-          <div className="flex flex-col my-2 w-full">
-            <label htmlFor="name" className="font-semibold text-lg">
+          <div className="flex flex-col my-1 w-full">
+            <label htmlFor="name" className="font-semibold">
               Full Name
             </label>
             <input
@@ -90,8 +90,8 @@ function SignUp() {
               className="p-2 rounded-md border-[#CBD5E1] border"
             />
           </div>
-          <div className="flex flex-col my-2 w-full">
-            <label htmlFor="email" className="font-semibold text-lg">
+          <div className="flex flex-col my-1 w-full">
+            <label htmlFor="email" className="font-semibold">
               Email
             </label>
             <input
@@ -103,8 +103,8 @@ function SignUp() {
               className="p-2 rounded-md border-[#CBD5E1] border"
             />
           </div>
-          <div className="flex flex-col my-2 w-full">
-            <label htmlFor="password" className="font-semibold text-lg">
+          <div className="flex flex-col my-1 w-full">
+            <label htmlFor="password" className="font-semibold">
               Password
             </label>
             <input
@@ -116,8 +116,8 @@ function SignUp() {
               className="p-2 rounded-md border-[#CBD5E1] border"
             />
           </div>
-          <div className="flex flex-col my-2 w-full">
-            <label htmlFor="confirmPassword" className="font-semibold text-lg">
+          <div className="flex flex-col my-1 w-full">
+            <label htmlFor="confirmPassword" className="font-semibold ">
               Password Confirmation
             </label>
             <input
@@ -135,7 +135,7 @@ function SignUp() {
             <p className="text-red-500 text-sm">{errorMessage}</p>
           )}
 
-          <Button disabled={isLoading} type="submit" className="w-full">
+          <Button disabled={isLoading} type="submit" className="w-full my-1">
             {isLoading ? (
               <span className="font-semibold">Loading...</span>
             ) : (
@@ -145,7 +145,7 @@ function SignUp() {
 
           <div className="flex space-x-0.5">
             <p>Already have an account?</p>
-            <Link to={'/login'} className="underline text-[#FF9870]">
+            <Link to={'/login'} className="underline text-primary">
               Sign In
             </Link>
           </div>
