@@ -20,7 +20,7 @@ const Button = ({
       type={type}
       onClick={onClick}
       disabled={disabled}
-      className={`bg-primary disabled:bg-primary/80 transition-all duration-200 text-white p-2 rounded-md cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${className}`}
+      className={`bg-primary hover:bg-primary/90 disabled:bg-primary/80 transition-all duration-200 text-white p-2 rounded-md cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${className}`}
     >
       {children}
     </button>
