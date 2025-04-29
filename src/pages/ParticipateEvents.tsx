@@ -4,50 +4,50 @@ import EventTable from '../components/pages/participate-event/EventTable';
 import Pagination from '../components/pages/participate-event/Pagination';
 
 const allEvents = [
-  {
-    id: '1',
-    name: 'Sharjah Light Festival 🖼️',
-    date: 'Jan 12, 2024',
-    type: 'Public',
-    slot: '80/120',
-  },
-  {
-    id: '2',
-    name: 'Ramadan Iftar Tent 🌙',
-    date: 'April 2, 2024',
-    type: 'Public',
-    slot: '80/120',
-  },
-  {
-    id: '3',
-    name: 'Mawlid al-Nabi 🕌',
-    date: 'April 5, 2024',
-    type: 'Private',
-    slot: '80/120',
-  },
-  {
-    id: '4',
-    name: 'Eid al-Fitr 2024 🕌',
-    date: 'April 10, 2024',
-    type: 'Private',
-    slot: '80/120',
-  },
-  {
-    id: '5',
-    name: 'Diwali Festival 🪔',
-    date: 'April 16, 2024',
-    type: 'Private',
-    slot: '80/120',
-  },
-  {
-    id: '6',
-    name: 'Tomorrowland Belgium 💡',
-    date: 'April 23, 2024',
-    type: 'Private',
-    slot: '80/120',
-  },
-  // Add more events here if needed
-];
+    {
+      id: '1',
+      name: 'Sharjah Light Festival 🖼️',
+      date: 'Jan 12, 2024',
+      type: 'Public',
+      slot: { participated: 80, capacity: 120 },
+    },
+    {
+      id: '2',
+      name: 'Ramadan Iftar Tent 🌙',
+      date: 'April 2, 2024',
+      type: 'Public',
+      slot: { participated: 80, capacity: 120 },
+    },
+    {
+      id: '3',
+      name: 'Mawlid al-Nabi 🕌',
+      date: 'April 5, 2024',
+      type: 'Private',
+      slot: { participated: 80, capacity: 120 },
+    },
+    {
+      id: '4',
+      name: 'Eid al-Fitr 2024 🕌',
+      date: 'April 10, 2024',
+      type: 'Private',
+      slot: { participated: 80, capacity: 120 },
+    },
+    {
+      id: '5',
+      name: 'Diwali Festival 🪔',
+      date: 'April 16, 2024',
+      type: 'Private',
+      slot: { participated: 80, capacity: 120 },
+    },
+    {
+      id: '6',
+      name: 'Tomorrowland Belgium 💡',
+      date: 'April 23, 2024',
+      type: 'Private',
+      slot: { participated: 80, capacity: 120 },
+    },
+  ];
+  
 
 function ParticipateEvents() {
   const [filterType, setFilterType] = useState('All');

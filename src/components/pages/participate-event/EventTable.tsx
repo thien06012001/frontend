@@ -6,7 +6,10 @@ interface Event {
   name: string;
   date: string;
   type: string;
-  slot: string;
+  slot: {
+    participated: number;
+    capacity: number;
+  };
 }
 
 function EventTable({
@@ -42,7 +45,9 @@ function EventTable({
             </td>
             <td className="px-4 py-2">{event.date}</td>
             <td className="px-4 py-2">{event.type}</td>
-            <td className="px-4 py-2">{event.slot}</td>
+            <td className="px-4 py-2">
+              {event.slot.participated}/{event.slot.capacity}
+            </td>
             <td className="px-4 py-2">
               <Button>Leave</Button>
             </td>
