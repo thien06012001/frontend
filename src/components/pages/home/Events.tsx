@@ -1,86 +1,97 @@
 import { useState } from 'react';
-import Button from '../../ui/Button';
 import { useToast } from '../../../hooks/context/ToastContext';
+import { Link } from 'react-router';
 
-const data = {
-  events: [
-    {
-      id: 1,
-      title: 'Eid al-Fitr 2024 🕌',
-      date: 'April 10, 2024',
-      timeRange: '7:00 AM - 12:00 AM',
-      type: 'Private',
-      location: 'Blue Mosque, Istanbul, Turkey',
-      attendees: 70,
-    },
-    {
-      id: 2,
-      title: 'Coachella Valley Music & Arts Festival 2024 🎶',
-      date: 'June 12, 2024',
-      timeRange: '6:00 PM - 10:00 PM',
-      type: 'Public',
-      location: 'Empire Polo Club, Indio, USA',
-      attendees: 20,
-    },
-    {
-      id: 3,
-      title: 'Tokyo 2024 Cherry Blossom Festival 🌸',
-      date: 'April 15, 2024',
-      timeRange: '9:00 AM - 6:00 PM',
-      type: 'Public',
-      location: 'Shinjuku Gyoen, Tokyo, Japan',
-      attendees: 150,
-    },
-    {
-      id: 4,
-      title: 'Comic-Con International 2024 🎭',
-      date: 'July 23, 2024',
-      timeRange: '10:00 AM - 8:00 PM',
-      type: 'Public',
-      location: 'San Diego Convention Center, San Diego, USA',
-      attendees: 250,
-    },
-  ],
-  page: 1,
-  totalPage: 10,
-};
+const allEvents = [
+  {
+    id: 1,
+    title: 'Eid al-Fitr 2024 🕌',
+    date: 'April 10, 2024',
+    timeRange: '7:00 AM - 12:00 AM',
+    type: 'Private',
+    location: 'Blue Mosque, Istanbul, Turkey',
+    attendees: 70,
+  },
+  {
+    id: 2,
+    title: 'Coachella Valley Music & Arts Festival 2024 🎶',
+    date: 'June 12, 2024',
+    timeRange: '6:00 PM - 10:00 PM',
+    type: 'Public',
+    location: 'Empire Polo Club, Indio, USA',
+    attendees: 20,
+  },
+  {
+    id: 3,
+    title: 'Tokyo 2024 Cherry Blossom Festival 🌸',
+    date: 'April 15, 2024',
+    timeRange: '9:00 AM - 6:00 PM',
+    type: 'Public',
+    location: 'Shinjuku Gyoen, Tokyo, Japan',
+    attendees: 150,
+  },
+  {
+    id: 4,
+    title: 'Comic-Con International 2024 🎭',
+    date: 'July 23, 2024',
+    timeRange: '10:00 AM - 8:00 PM',
+    type: 'Public',
+    location: 'San Diego Convention Center, San Diego, USA',
+    attendees: 250,
+  },
+  {
+    id: 5,
+    title: 'Burning Man 2024 🔥',
+    date: 'August 25, 2024',
+    timeRange: 'All Day',
+    type: 'Private',
+    location: 'Black Rock City, Nevada, USA',
+    attendees: 120,
+  },
+  {
+    id: 6,
+    title: 'Lantern Festival 2024 🏮',
+    date: 'Feb 24, 2024',
+    timeRange: '6:00 PM - 10:00 PM',
+    type: 'Public',
+    location: 'Chiang Mai, Thailand',
+    attendees: 300,
+  },
+  // Add more if you want to test pagination
+];
+
 interface RequestStatus {
   [eventId: number]: 'none' | 'pending' | 'approved';
 }
 
 function Events() {
-  const [currentPage, setCurrentPage] = useState(data.page);
+  const [currentPage, setCurrentPage] = useState(1);
+  const eventsPerPage = 3;
+  const totalPages = Math.ceil(allEvents.length / eventsPerPage);
+
   const [requestStatus, setRequestStatus] = useState<RequestStatus>({});
   const [loadingEventId, setLoadingEventId] = useState<number | null>(null);
-  const { showToast } = useToast(); // Use the showToast function from context
+  const { showToast } = useToast();
 
-  const totalPages = data.totalPage;
+  const paginatedEvents = allEvents.slice(
+    (currentPage - 1) * eventsPerPage,
+    currentPage * eventsPerPage,
+  );
 
   const handleRequestAction = async (eventId: number) => {
     setLoadingEventId(eventId);
-
     await new Promise(resolve => setTimeout(resolve, 1000));
 
     const currentStatus = requestStatus[eventId];
-
     if (currentStatus === 'pending' || currentStatus === 'approved') {
-      setRequestStatus(prev => ({
-        ...prev,
-        [eventId]: 'none',
-      }));
+      setRequestStatus(prev => ({ ...prev, [eventId]: 'none' }));
       showToast('Request cancelled!', 'info');
     } else {
-      setRequestStatus(prev => ({
-        ...prev,
-        [eventId]: 'pending',
-      }));
+      setRequestStatus(prev => ({ ...prev, [eventId]: 'pending' }));
       showToast('Request sent! Waiting for approval.', 'info');
 
       setTimeout(() => {
-        setRequestStatus(prev => ({
-          ...prev,
-          [eventId]: 'approved',
-        }));
+        setRequestStatus(prev => ({ ...prev, [eventId]: 'approved' }));
         showToast('Your request was approved!', 'success');
       }, 2000);
     }
@@ -88,12 +99,9 @@ function Events() {
     setLoadingEventId(null);
   };
 
-  const handlePrevPage = () => {
-    if (currentPage > 1) setCurrentPage(prev => prev - 1);
-  };
-
-  const handleNextPage = () => {
-    if (currentPage < totalPages) setCurrentPage(prev => prev + 1);
+  const handlePageChange = (page: number) => {
+    if (page < 1 || page > totalPages) return;
+    setCurrentPage(page);
   };
 
   return (
@@ -101,18 +109,16 @@ function Events() {
       <h1 className="font-semibold text-3xl mb-5">Homepage</h1>
 
       <div className="flex flex-col space-y-3">
-        {data.events.map(event => {
+        {paginatedEvents.map(event => {
           const status = requestStatus[event.id] || 'none';
           const isLoading = loadingEventId === event.id;
 
           let buttonLabel = 'Request';
           let buttonColor = 'bg-blue-500 hover:bg-blue-600';
-
           if (status === 'pending') {
             buttonLabel = 'Cancel';
             buttonColor = 'bg-red-500 hover:bg-red-600';
-          }
-          if (status === 'approved') {
+          } else if (status === 'approved') {
             buttonLabel = 'Leave';
             buttonColor = 'bg-green-500 hover:bg-green-600';
           }
@@ -123,7 +129,7 @@ function Events() {
               className="flex-1 flex justify-between items-center border border-gray-200 rounded-md p-3"
             >
               <div className="space-y-1 flex-1">
-                <p>{event.title}</p>
+                <Link to={`/event/${event.id}`}> {event.title}</Link>
                 <p className="text-xs text-gray-400">
                   {event.date} – {event.timeRange}
                 </p>
@@ -148,7 +154,7 @@ function Events() {
               </div>
 
               <button
-                className={`text-white text-sm py-2 px-4 rounded-md transition-all ${buttonColor} disabled:bg-gray-300`}
+                className={`text-white text-sm py-2 px-4 rounded-md transition-all cursor-pointer ${buttonColor} disabled:bg-gray-300`}
                 onClick={() => handleRequestAction(event.id)}
                 disabled={isLoading}
               >
@@ -159,20 +165,37 @@ function Events() {
         })}
       </div>
 
-      {/* Pagination */}
-      <div className="flex justify-center items-center space-x-5 mt-6">
-        <Button onClick={handlePrevPage} disabled={currentPage === 1}>
-          Previous
-        </Button>
-        <span className="text-sm">
-          Page {currentPage} of {totalPages}
-        </span>
-        <Button onClick={handleNextPage} disabled={currentPage === totalPages}>
+      {/* Pagination Controls */}
+      <div className="flex justify-center items-center gap-2 pt-6">
+        <button
+          onClick={() => handlePageChange(currentPage - 1)}
+          disabled={currentPage === 1}
+          className="px-3 py-1 border border-primary hover:bg-primary hover:text-white cursor-pointer rounded disabled:opacity-50"
+        >
+          Prev
+        </button>
+        {[...Array(totalPages)].map((_, idx) => {
+          const page = idx + 1;
+          return (
+            <button
+              key={page}
+              onClick={() => handlePageChange(page)}
+              className={`px-3 py-1 rounded cursor-pointer border border-primary hover:bg-primary hover:text-white ${
+                currentPage === page ? 'bg-primary text-white' : ''
+              }`}
+            >
+              {page}
+            </button>
+          );
+        })}
+        <button
+          onClick={() => handlePageChange(currentPage + 1)}
+          disabled={currentPage === totalPages}
+          className="px-3 py-1 border border-primary hover:bg-primary hover:text-white cursor-pointer rounded disabled:opacity-50"
+        >
           Next
-        </Button>
+        </button>
       </div>
-
-      {/* Toast Container */}
     </section>
   );
 }

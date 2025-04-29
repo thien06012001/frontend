@@ -12,6 +12,8 @@ import SignUp from './pages/auth/SignUp';
 import Layout from './components/shared/Layout';
 import { ToastProvider } from './hooks/context/ToastContext';
 import EventCreate from './pages/EventCreate';
+import ParticipateEvents from './pages/ParticipateEvents';
+import MyEvents from './pages/MyEvents';
 const router = createBrowserRouter([
   {
     path: '/',
@@ -20,6 +22,8 @@ const router = createBrowserRouter([
     children: [
       { path: '/', element: <Home /> },
       { path: '/create-event', element: <EventCreate /> },
+      { path: '/participate-events', element: <ParticipateEvents /> },
+      { path: '/my-events', element: <MyEvents /> },
     ],
   },
   {

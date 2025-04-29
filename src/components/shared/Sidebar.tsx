@@ -7,8 +7,9 @@ import { logout } from '../../hooks/redux/slices/user.slice';
 
 const navItems = [
   { to: '/', label: 'Homepage', icon: 'dashboard.png' },
-  { to: '/event', label: 'Event Tracking', icon: 'event.png' },
-  { to: '/inbox', label: 'Inbox', icon: 'inbox.png' },
+  { to: '/participate-events', label: 'Participate Events', icon: 'event.png' },
+  { to: '/my-events', label: 'My Events', icon: 'event.png' },
+  { to: '/invitation', label: 'Inbox', icon: 'inbox.png' },
 ];
 
 function Sidebar() {
