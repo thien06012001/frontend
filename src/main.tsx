@@ -14,6 +14,8 @@ import { ToastProvider } from './hooks/context/ToastContext';
 import EventCreate from './pages/EventCreate';
 import ParticipateEvents from './pages/ParticipateEvents';
 import MyEvents from './pages/MyEvents';
+import Invitations from './pages/Invitations';
+import NotificationPage from './pages/Notification';
 const router = createBrowserRouter([
   {
     path: '/',
@@ -24,6 +26,8 @@ const router = createBrowserRouter([
       { path: '/create-event', element: <EventCreate /> },
       { path: '/participate-events', element: <ParticipateEvents /> },
       { path: '/my-events', element: <MyEvents /> },
+      { path: '/invitations', element: <Invitations /> },
+      { path: 'notifications', element: <NotificationPage /> },
     ],
   },
   {
