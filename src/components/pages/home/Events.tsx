@@ -135,16 +135,16 @@ function Events() {
                 </p>
                 <div className="flex justify-start items-center space-x-3 mt-3 w-full">
                   <div className="flex text-xs space-x-1">
-                    <img src="icons/event-star.png" alt="event type" />
+                    <img src="/icons/event-star.png" alt="event type" />
                     <span>{event.type}</span>
                   </div>
                   <div className="flex text-xs space-x-1">
-                    <img src="icons/global.png" alt="Address" />
+                    <img src="/icons/global.png" alt="Address" />
                     <p>{event.location}</p>
                   </div>
                   <div className="flex text-xs space-x-1">
                     <img
-                      src="icons/people.png"
+                      src="/icons/people.png"
                       alt="people"
                       className="size-4"
                     />

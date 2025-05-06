@@ -23,7 +23,7 @@ function Sidebar() {
   return (
     <aside className="p-5 border border-gray-200 flex flex-col justify-between items-center">
       <div>
-        <img src="logo.png" alt="logo" />
+        <img src="/logo.png" alt="logo" />
         <nav>
           <ul className="space-y-4 mt-10">
             {navItems.map(({ to, label, icon }) => {
@@ -31,7 +31,7 @@ function Sidebar() {
               return (
                 <li key={to} className="flex items-center space-x-2">
                   <div className="bg-primary rounded-full w-fit p-2">
-                    <img src={`icons/${icon}`} alt={`${label} icon`} />
+                    <img src={`/icons/${icon}`} alt={`${label} icon`} />
                   </div>
                   <Link
                     to={to}

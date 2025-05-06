@@ -58,7 +58,7 @@ function SignUp() {
   return (
     <div className="flex h-screen container p-5">
       <section className="w-1/2 h-full border-[#9EB1C7] border rounded-l-md shadow-md px-10 flex flex-col justify-around">
-        <img src="logo.png" alt="logo" className="mx-auto" />
+        <img src="/logo.png" alt="logo" className="mx-auto" />
         <form
           onSubmit={handleSubmit}
           className="flex flex-col items-center justify-center"
@@ -152,7 +152,7 @@ function SignUp() {
         </form>
       </section>
       <section className="bg-[#FFE8DE] flex items-center justify-center w-1/2 h-full border-[#9EB1C7] border rounded-r-md shadow-md">
-        <img src="auth.png" alt="auth image" />
+        <img src="/auth.png" alt="auth image" />
       </section>
     </div>
   );

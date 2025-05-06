@@ -16,6 +16,7 @@ import ParticipateEvents from './pages/ParticipateEvents';
 import MyEvents from './pages/MyEvents';
 import Invitations from './pages/Invitations';
 import NotificationPage from './pages/Notification';
+import EventDetail from './pages/EventDetail';
 const router = createBrowserRouter([
   {
     path: '/',
@@ -28,6 +29,7 @@ const router = createBrowserRouter([
       { path: '/my-events', element: <MyEvents /> },
       { path: '/invitations', element: <Invitations /> },
       { path: 'notifications', element: <NotificationPage /> },
+      { path: '/event/:id', element: <EventDetail /> },
     ],
   },
   {

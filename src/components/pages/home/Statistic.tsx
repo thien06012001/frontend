@@ -1,21 +1,21 @@
 const stats = [
   {
-    icon: 'icons/invite.png',
+    icon: '/icons/invite.png',
     label: 'Invitations/Requests',
     value: 13550,
   },
   {
-    icon: 'icons/event-check.png',
+    icon: '/icons/event-check.png',
     label: 'Total Events',
     value: 271,
   },
   {
-    icon: 'icons/public.png',
+    icon: '/icons/public.png',
     label: 'Public Events',
     value: 229,
   },
   {
-    icon: 'icons/private.png',
+    icon: '/icons/private.png',
     label: 'Private Events',
     value: 42,
   },
