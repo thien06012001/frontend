@@ -1,10 +1,16 @@
 // components/Layout.tsx
 
-import { Outlet } from 'react-router';
+import { Navigate, Outlet } from 'react-router';
 import Sidebar from './Sidebar';
 import Header from './Header';
+import { useSelector } from 'react-redux';
+import { RootState } from '../../hooks/redux/store';
 
 const Layout = () => {
+  const user = useSelector((state: RootState) => state.users.user);
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
   return (
     <div className="flex h-screen">
       <Sidebar />

@@ -9,6 +9,7 @@ const navItems = [
   { to: '/my-events', label: 'My Events', icon: 'event-check.svg' },
   { to: '/invitations', label: 'Invitations', icon: 'inbox.png' },
   { to: '/notifications', label: 'Notifications', icon: 'notification.svg' },
+  { to: '/admin', label: 'Admin Settings', icon: 'dashboard.png' },
 ];
 
 function Sidebar() {

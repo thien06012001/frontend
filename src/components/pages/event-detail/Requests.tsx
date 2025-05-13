@@ -4,19 +4,16 @@ type Request = {
   id: number;
   name: string;
   email: string;
-  reason: string;
+  phone: string;
   sentAt: string;
-  status: 'Pending' | 'Approved' | 'Declined';
 };
 
 const initialMockRequests: Request[] = Array.from({ length: 23 }, (_, i) => ({
   id: i + 1,
   name: `User ${i + 1}`,
   email: `user${i + 1}@example.com`,
-  reason:
-    i % 3 === 0 ? 'Interested in networking' : 'Wants to attend the event',
+  phone: `+12345678${i.toString().padStart(2, '0')}`, // ✅ Generate phone numbers
   sentAt: new Date(2024, 3, i + 1).toLocaleDateString(),
-  status: 'Pending',
 }));
 
 function Requests() {
@@ -42,10 +39,6 @@ function Requests() {
     setCurrentPage(page);
   };
 
-  const handleStatusChange = (id: number, status: 'Approved' | 'Declined') => {
-    setRequests(prev => prev.map(r => (r.id === id ? { ...r, status } : r)));
-  };
-
   return (
     <div className="space-y-3">
       <div className="flex justify-between items-center">
@@ -68,9 +61,8 @@ function Requests() {
             <th className="px-3 py-2 text-left">#</th>
             <th className="px-3 py-2 text-left">Name</th>
             <th className="px-3 py-2 text-left">Email</th>
-            <th className="px-3 py-2 text-left">Reason</th>
+            <th className="px-3 py-2 text-left">Phone</th>
             <th className="px-3 py-2 text-left">Sent At</th>
-            <th className="px-3 py-2 text-left">Status</th>
             <th className="px-3 py-2 text-left">Actions</th>
           </tr>
         </thead>
@@ -80,23 +72,16 @@ function Requests() {
               <td className="px-3 py-2">{request.id}</td>
               <td className="px-3 py-2">{request.name}</td>
               <td className="px-3 py-2">{request.email}</td>
-              <td className="px-3 py-2">{request.reason}</td>
+              <td className="px-3 py-2">{request.phone}</td>
               <td className="px-3 py-2">{request.sentAt}</td>
-              <td className="px-3 py-2 font-medium">{request.status}</td>
-              <td className="px-3 py-2 space-x-2">
+              <td className="px-3 py-2">
                 <button
-                  disabled={request.status !== 'Pending'}
-                  onClick={() => handleStatusChange(request.id, 'Approved')}
-                  className="px-2 py-1 text-xs rounded bg-green-600 text-white disabled:opacity-50"
+                  onClick={() =>
+                    setRequests(prev => prev.filter(r => r.id !== request.id))
+                  }
+                  className="px-2 py-1 text-xs rounded bg-red-600 text-white"
                 >
-                  Approve
-                </button>
-                <button
-                  disabled={request.status !== 'Pending'}
-                  onClick={() => handleStatusChange(request.id, 'Declined')}
-                  className="px-2 py-1 text-xs rounded bg-red-600 text-white disabled:opacity-50"
-                >
-                  Decline
+                  Remove
                 </button>
               </td>
             </tr>

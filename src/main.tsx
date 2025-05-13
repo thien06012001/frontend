@@ -17,6 +17,7 @@ import MyEvents from './pages/MyEvents';
 import Invitations from './pages/Invitations';
 import NotificationPage from './pages/Notification';
 import EventDetail from './pages/EventDetail';
+import AdminSetting from './pages/AdminSetting';
 const router = createBrowserRouter([
   {
     path: '/',
@@ -30,6 +31,7 @@ const router = createBrowserRouter([
       { path: '/invitations', element: <Invitations /> },
       { path: 'notifications', element: <NotificationPage /> },
       { path: '/event/:id', element: <EventDetail /> },
+      { path: '/admin', element: <AdminSetting /> },
     ],
   },
   {

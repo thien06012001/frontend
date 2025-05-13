@@ -1,6 +1,6 @@
-import { useParams, Link } from 'react-router';
-import { useState } from 'react';
-import Button from '../components/ui/Button';
+import React, { useMemo, useState, useEffect } from 'react';
+import { useParams, Link, useSearchParams } from 'react-router';
+import Info from '../components/pages/event-detail/Info';
 import JoinedMembers from '../components/pages/event-detail/JoinedMembers';
 import Requests from '../components/pages/event-detail/Requests';
 import Invitations from '../components/pages/event-detail/Invitations';
@@ -11,13 +11,15 @@ const mockEvents = [
   {
     id: '1',
     name: 'Sharjah Light Festival 🖼️',
+    description: 'A celebration of light and culture.',
     date: '2024-01-12',
     timeRange: '18:00 - 22:00',
     type: 'Public',
     location: 'Al Noor Mosque, Sharjah',
-    description: 'A celebration of light and culture.',
     slot: { participated: 80, capacity: 120 },
     organizerId: 'user-123',
+    imageUrl:
+      'https://www.eventbookings.com/wp-content/uploads/2018/03/cool-event-ideas-for-you-eventbookings-au.jpg',
   },
 ];
 
@@ -30,32 +32,85 @@ type OrganizerView =
   | 'discussions';
 
 function EventDetail() {
+  // 1. Non-hook values first
   const { id } = useParams();
   const event = mockEvents.find(e => e.id === id);
-  const currentUserId = 'user-123'; // Replace with session user id
-  const [activeView, setActiveView] = useState<OrganizerView>('info');
+  const currentUserId = 'user-123'; // replace with real user ID
+  const isOrganizer = !!event && event.organizerId === currentUserId;
 
-  if (!event)
+  // 2. Hooks in fixed order
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const allowedTabs = useMemo<OrganizerView[]>(
+    () =>
+      isOrganizer
+        ? [
+            'info',
+            'members',
+            'requests',
+            'discussions',
+            'invitations',
+            'reminders',
+          ]
+        : ['info', 'discussions'],
+    [isOrganizer],
+  );
+
+  const tabParam = (searchParams.get('tab') as OrganizerView) || 'info';
+  const initialTab: OrganizerView = allowedTabs.includes(tabParam)
+    ? tabParam
+    : 'info';
+  const [activeView, setActiveView] = useState<OrganizerView>(initialTab);
+
+  useEffect(() => {
+    if (!allowedTabs.includes(tabParam)) {
+      setSearchParams({ tab: 'info' });
+    }
+  }, [allowedTabs, tabParam, setSearchParams]);
+
+  // 3. If no event, render fallback
+  if (!event) {
     return (
       <main className="p-5">
         <h1>Event not found</h1>
       </main>
     );
+  }
 
-  const isOrganizer = event.organizerId === currentUserId;
+  // 4. Handlers and render logic
+  const handleTabChange = (tab: OrganizerView) => {
+    setActiveView(tab);
+    setSearchParams({ tab });
+  };
 
-  const renderOrganizerSection = () => {
+  const navButtons: { label: string; value: OrganizerView }[] = isOrganizer
+    ? [
+        { label: 'Info', value: 'info' },
+        { label: 'Joined Members', value: 'members' },
+        { label: 'Requests', value: 'requests' },
+        { label: 'Discussions', value: 'discussions' },
+        { label: 'Invitations', value: 'invitations' },
+        { label: 'Send Reminder', value: 'reminders' },
+      ]
+    : [
+        { label: 'Info', value: 'info' },
+        { label: 'Discussions', value: 'discussions' },
+      ];
+
+  const renderSection = () => {
     switch (activeView) {
-      case 'members':
-        return <JoinedMembers />;
-      case 'invitations':
-        return <Invitations />;
-      case 'reminders':
-        return <Reminder />;
-      case 'requests':
-        return <Requests />;
+      case 'info':
+        return <Info event={event} isOrganizer={isOrganizer} />;
       case 'discussions':
         return <Discussion />;
+      case 'members':
+        return isOrganizer ? <JoinedMembers /> : null;
+      case 'requests':
+        return isOrganizer ? <Requests /> : null;
+      case 'invitations':
+        return isOrganizer ? <Invitations /> : null;
+      case 'reminders':
+        return isOrganizer ? <Reminder eventStartDate={event.date} /> : null;
       default:
         return null;
     }
@@ -69,116 +124,26 @@ function EventDetail() {
         </Link>
       </nav>
 
-      {isOrganizer && (
-        <nav className="mt-4 flex gap-3 text-sm font-medium border border-primary bg-primary/5 p-3 rounded-md flex-wrap">
+      {/* Navigation */}
+      <nav className="mt-4 flex gap-3 text-sm font-medium border border-primary bg-primary/5 p-3 rounded-md flex-wrap">
+        {navButtons.map(({ label, value }) => (
           <button
-            onClick={() => setActiveView('info')}
-            className={activeView === 'info' ? 'text-primary underline' : ''}
+            key={value}
+            onClick={() => handleTabChange(value)}
+            className={activeView === value ? 'text-primary underline' : ''}
           >
-            Info
+            {label}
           </button>
-          <button
-            onClick={() => setActiveView('members')}
-            className={activeView === 'members' ? 'text-primary underline' : ''}
-          >
-            Joined Members
-          </button>
-          <button
-            onClick={() => setActiveView('requests')}
-            className={
-              activeView === 'requests' ? 'text-primary underline' : ''
-            }
-          >
-            Requests
-          </button>
-          <button
-            onClick={() => setActiveView('discussions')}
-            className={
-              activeView === 'discussions' ? 'text-primary underline' : ''
-            }
-          >
-            Discussions
-          </button>
-          <button
-            onClick={() => setActiveView('invitations')}
-            className={
-              activeView === 'invitations' ? 'text-primary underline' : ''
-            }
-          >
-            Invitations
-          </button>
-          <button
-            onClick={() => setActiveView('reminders')}
-            className={
-              activeView === 'reminders' ? 'text-primary underline' : ''
-            }
-          >
-            Send Reminder
-          </button>
-        </nav>
-      )}
+        ))}
+      </nav>
 
+      {/* Content */}
       <article
         className="space-y-4 mt-4"
         itemScope
         itemType="https://schema.org/Event"
       >
-        {activeView === 'info' && (
-          <>
-            <header>
-              <h1 className="text-3xl font-semibold" itemProp="name">
-                {event.name}
-              </h1>
-            </header>
-
-            <section>
-              <p itemProp="description" className="text-gray-700">
-                {event.description}
-              </p>
-            </section>
-
-            <section className="space-y-1">
-              <div>
-                <strong>Date:</strong>{' '}
-                <time itemProp="startDate" dateTime={event.date}>
-                  {new Date(event.date).toLocaleDateString(undefined, {
-                    weekday: 'long',
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                  })}
-                </time>
-              </div>
-              <div>
-                <strong>Time:</strong> <span>{event.timeRange}</span>
-              </div>
-              <div>
-                <strong>Type:</strong> <span>{event.type}</span>
-              </div>
-              <div>
-                <strong>Slot:</strong>{' '}
-                <span>
-                  {event.slot.participated} / {event.slot.capacity}
-                </span>
-              </div>
-              <address itemProp="location" className="not-italic">
-                <strong>Location:</strong> {event.location}
-              </address>
-            </section>
-
-            {!isOrganizer && (
-              <footer>
-                <Button>Request to Join</Button>
-              </footer>
-            )}
-          </>
-        )}
-
-        {isOrganizer && activeView !== 'info' && (
-          <section className="text-gray-700">
-            {renderOrganizerSection()}
-          </section>
-        )}
+        <section className="text-gray-700">{renderSection()}</section>
       </article>
     </div>
   );

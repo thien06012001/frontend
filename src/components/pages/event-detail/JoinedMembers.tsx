@@ -5,7 +5,6 @@ type Attendee = {
   name: string;
   email: string;
   phone: string;
-  country: string;
   joinedAt: string;
 };
 
@@ -14,7 +13,6 @@ const initialAttendees: Attendee[] = Array.from({ length: 42 }, (_, i) => ({
   name: `Attendee ${i + 1}`,
   email: `attendee${i + 1}@example.com`,
   phone: `+12345678${i.toString().padStart(2, '0')}`,
-  country: 'UAE',
   joinedAt: new Date(2024, 0, i + 1).toLocaleDateString(),
 }));
 
@@ -68,7 +66,6 @@ function JoinedMembers() {
             <th className="px-3 py-2 text-left">Name</th>
             <th className="px-3 py-2 text-left">Email</th>
             <th className="px-3 py-2 text-left">Phone</th>
-            <th className="px-3 py-2 text-left">Country</th>
             <th className="px-3 py-2 text-left">Joined At</th>
             <th className="px-3 py-2 text-left">Actions</th>
           </tr>
@@ -80,7 +77,6 @@ function JoinedMembers() {
               <td className="px-3 py-2">{attendee.name}</td>
               <td className="px-3 py-2">{attendee.email}</td>
               <td className="px-3 py-2">{attendee.phone}</td>
-              <td className="px-3 py-2">{attendee.country}</td>
               <td className="px-3 py-2">{attendee.joinedAt}</td>
               <td className="px-3 py-2">
                 <button
