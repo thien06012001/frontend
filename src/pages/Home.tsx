@@ -1,7 +1,7 @@
-import Event from '../components/pages/home/Events';
+import Events from '../components/pages/home/Events';
 
 function Home() {
-  return <Event />;
+  return <Events />;
 }
 
 export default Home;
