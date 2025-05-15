@@ -1,7 +1,7 @@
 // components/Events.tsx
 
 import { useEffect, useState } from 'react';
-import { useToast } from '../../../hooks/context/ToastContext'; // Context hook for global toast notifications
+// import { useToast } from '../../../hooks/context/ToastContext'; // Context hook for global toast notifications
 import { Link } from 'react-router'; // Link component for client-side navigation
 import { handleAPI } from '../../../handlers/api-handler';
 import { Event } from '../../../types';
@@ -34,7 +34,7 @@ function Events() {
   const totalPages = Math.ceil(events.length / eventsPerPage);
 
   // --- Toast notifications from context ---
-  const { showToast } = useToast();
+  // const { showToast } = useToast();
 
   // Compute the events to render on the current page
   const paginatedEvents = events.slice(
