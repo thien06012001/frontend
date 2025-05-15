@@ -5,9 +5,12 @@ import { useToast } from '../../../hooks/context/ToastContext'; // Context hook 
 import { Link } from 'react-router'; // Link component for client-side navigation
 import { handleAPI } from '../../../handlers/api-handler';
 import { Event } from '../../../types';
+import useUser from '../../../hooks/redux/useUser';
 
 function Events() {
   const [events, setEvents] = useState<Event[]>([]);
+  const user = useUser();
+  const userId = user.id;
 
   useEffect(() => {
     const fetchEvents = async () => {
@@ -39,14 +42,31 @@ function Events() {
     currentPage * eventsPerPage,
   );
 
-  /**
-   * Handles click on the Request/Cancel/Leave button.
-   * - Shows a loading state.
-   * - Toggles between 'none' → 'pending' → 'approved' statuses.
-   * - Displays appropriate toast messages.
-   */
-  const handleRequestAction = async (eventId: string) => {
-    console.log('Request action for event ID:', eventId);
+  const handleRequestAction = async (eventId: string, action: string) => {
+    if (action === 'cancel') {
+      await handleAPI(`/requests?userId=${userId}&eventId=${eventId}`, {
+        method: 'DELETE',
+      });
+    }
+
+    if (action === 'request') {
+      await handleAPI(`/requests`, {
+        method: 'POST',
+        body: JSON.stringify({
+          eventId,
+          userId,
+        }),
+      });
+    }
+
+    if (action === 'leave') {
+      await handleAPI(`/events/${eventId}/leave`, {
+        method: 'POST',
+        body: JSON.stringify({ userId }),
+      });
+    }
+
+    window.location.reload();
   };
 
   /**
@@ -65,18 +85,26 @@ function Events() {
       {/* Event cards */}
       <div className="flex flex-col space-y-3">
         {paginatedEvents.map(event => {
-          // const status = requestStatus[event.id] || 'none';
+          let buttonLabel = 'Request';
+          let buttonColor = 'bg-blue-500 hover:bg-blue-600';
 
-          // // Determine button label & styling based on current status
-          // let buttonLabel = 'Request';
-          // let buttonColor = 'bg-blue-500 hover:bg-blue-600';
-          // if (status === 'pending') {
-          //   buttonLabel = 'Cancel';
-          //   buttonColor = 'bg-red-500 hover:bg-red-600';
-          // } else if (status === 'approved') {
-          //   buttonLabel = 'Leave';
-          //   buttonColor = 'bg-green-500 hover:bg-green-600';
-          // }
+          const isRequestPending = event.requests.some(
+            request =>
+              request.user_id === userId && request.status === 'pending',
+          );
+
+          const isJoined = event.participants.some(
+            participant => participant.id === userId,
+          );
+
+          if (isRequestPending) {
+            buttonLabel = 'Cancel';
+            buttonColor = 'bg-red-500 hover:bg-red-600';
+          } else if (isJoined) {
+            buttonLabel = 'Leave';
+            buttonColor = 'bg-green-500 hover:bg-green-600';
+          }
+          const isOwner = event.owner_id === userId;
 
           return (
             <div
@@ -109,13 +137,23 @@ function Events() {
                 </div>
               </div>
 
-              {/* Request button */}
-              <button
-                onClick={() => handleRequestAction(event.id)}
-                className={`text-white text-sm py-2 px-4 rounded-md transition-all cursor-pointer  disabled:bg-gray-300`}
-              >
-                Loading
-              </button>
+              {!isOwner && (
+                <button
+                  onClick={() =>
+                    handleRequestAction(
+                      event.id,
+                      isJoined
+                        ? 'leave'
+                        : isRequestPending
+                          ? 'cancel'
+                          : 'request',
+                    )
+                  }
+                  className={`text-white ${buttonColor} text-sm py-2 px-4 rounded-md transition-all cursor-pointer  disabled:bg-gray-300`}
+                >
+                  {buttonLabel}
+                </button>
+              )}
             </div>
           );
         })}

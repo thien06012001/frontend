@@ -11,12 +11,15 @@ export type Event = {
   capacity: number;
   participants: User[];
   posts: Post[];
+  requests: Request[];
+  invitations: Invitation[];
 };
 
 export type User = {
   id: string;
   name: string;
   email: string;
+  phone: string;
 };
 
 export type Post = {
@@ -39,4 +42,42 @@ export type Comment = {
   created_at: string;
   updated_at: string;
   user: User;
+};
+
+export type UserWithEvents = User & {
+  participatingEvents: Event[];
+};
+
+export type Request = {
+  id: string;
+  status: string;
+  event_id: string;
+  user_id: string;
+  created_at: string;
+  updated_at: string;
+  user: User;
+};
+
+export type Invitation = {
+  id: string;
+  event_id: string;
+  user_id: string;
+  created_at: string;
+  updated_at: string;
+  user: User;
+  status: string;
+  event: {
+    name: string;
+    start_time: string;
+  };
+};
+
+export type Notification = {
+  id: string;
+  title: string;
+  description: string;
+  userId: string;
+  created_at: string;
+  updated_at: string;
+  isRead: boolean;
 };

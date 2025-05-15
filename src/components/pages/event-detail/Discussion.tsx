@@ -1,5 +1,8 @@
 import { useState } from 'react';
 import { Post } from '../../../types';
+import useUser from '../../../hooks/redux/useUser';
+import { handleAPI } from '../../../handlers/api-handler';
+import { useParams } from 'react-router';
 
 type Thread = {
   id: number;
@@ -17,92 +20,12 @@ type Reply = {
   postedAt: string;
 };
 
-const initialThreads: Thread[] = [
-  {
-    id: 1,
-    author: 'Attendee 1',
-    title: 'What time should we arrive?',
-    content: 'Just wondering when we should be at the venue.',
-    postedAt: '2025-05-01 10:00',
-    replies: [
-      {
-        id: 1,
-        author: 'Organizer',
-        content: 'Please arrive 15 minutes before start time.',
-        postedAt: '2025-05-01 11:00',
-      },
-    ],
-  },
-  {
-    id: 2,
-    author: 'Attendee 2',
-    title: 'Will food be provided?',
-    content: 'Will there be snacks or a meal included in the event?',
-    postedAt: '2025-05-02 09:30',
-    replies: [
-      {
-        id: 1,
-        author: 'Organizer',
-        content: 'Yes! Light refreshments will be available during the break.',
-        postedAt: '2025-05-02 10:15',
-      },
-    ],
-  },
-  {
-    id: 3,
-    author: 'Attendee 3',
-    title: 'Can I bring a guest?',
-    content: 'I’d love to bring a friend. Is that allowed for this event?',
-    postedAt: '2025-05-03 13:45',
-    replies: [
-      {
-        id: 1,
-        author: 'Organizer',
-        content: 'This event is limited to registered attendees only.',
-        postedAt: '2025-05-03 14:05',
-      },
-    ],
-  },
-  {
-    id: 4,
-    author: 'Attendee 4',
-    title: 'Is parking available at the venue?',
-    content: 'Just checking if I need to book parking in advance.',
-    postedAt: '2025-05-04 08:00',
-    replies: [
-      {
-        id: 1,
-        author: 'Organizer',
-        content: 'Free parking is available on-site for all attendees.',
-        postedAt: '2025-05-04 08:45',
-      },
-    ],
-  },
-  {
-    id: 5,
-    author: 'Attendee 5',
-    title: 'Can we get a copy of the presentation slides?',
-    content:
-      'I want to take notes, but a copy of the slides would be helpful too.',
-    postedAt: '2025-05-05 12:10',
-    replies: [
-      {
-        id: 1,
-        author: 'Organizer',
-        content:
-          'Yes, slides will be emailed to all participants after the event.',
-        postedAt: '2025-05-05 12:40',
-      },
-    ],
-  },
-];
-
 type Props = {
   posts: Post[];
+  isOrganizer: boolean;
 };
 
-function Discussion({ posts }: Props) {
-  const [threads, setThreads] = useState<Post[]>(posts);
+function Discussion({ posts, isOrganizer }: Props) {
   const [newTitle, setNewTitle] = useState('');
   const [newContent, setNewContent] = useState('');
   const [replyInputs, setReplyInputs] = useState<Record<string, string>>({});
@@ -111,53 +34,54 @@ function Discussion({ posts }: Props) {
   const [currentUserName] = useState('You');
   const [showReplies, setShowReplies] = useState<Record<string, boolean>>({});
 
-  const handleCreateThread = () => {
+  const user = useUser();
+  const { id } = useParams();
+
+  const userId = user.id;
+
+  const handleCreateThread = async () => {
+    await handleAPI('/posts', {
+      method: 'POST',
+      body: JSON.stringify({
+        title: newTitle,
+        content: newContent,
+        eventId: id, // Replace with actual event ID
+        userId: userId,
+      }),
+    });
     setNewTitle('');
     setNewContent('');
+    window.location.reload();
   };
 
-  const handleReply = (threadId: string) => {
-    const replyText = replyInputs[threadId]?.trim();
-    if (!replyText) return;
-
-    setThreads(prev =>
-      prev.map(thread =>
-        thread.id === threadId
-          ? {
-              ...thread,
-              replies: [
-                ...thread.comments,
-                {
-                  id: Date.now(),
-                  author: currentUserName,
-                  content: replyText,
-                  postedAt: new Date().toLocaleString(),
-                },
-              ],
-            }
-          : thread,
-      ),
-    );
-
-    setReplyInputs(prev => ({ ...prev, [threadId]: '' }));
-    setShowReplyBox(prev => ({ ...prev, [threadId]: false }));
+  const handleReply = async (postId: string, content: string) => {
+    await handleAPI('/comments', {
+      method: 'POST',
+      body: JSON.stringify({
+        content,
+        postId,
+        userId,
+      }),
+    });
+    setReplyInputs(prev => ({
+      ...prev,
+      [postId]: '',
+    }));
+    window.location.reload();
   };
 
-  const handleDeleteThread = (id: string) => {
-    setThreads(prev => prev.filter(t => t.id !== id));
+  const handleDeleteReply = async (replyId: string) => {
+    await handleAPI(`/comments/${replyId}`, {
+      method: 'DELETE',
+    });
+    window.location.reload();
   };
 
-  const handleDeleteReply = (postId: string, commentId: string) => {
-    setThreads(prev =>
-      prev.map(thread =>
-        thread.id === postId
-          ? {
-              ...thread,
-              comments: thread.comments.filter(reply => reply.id !== commentId),
-            }
-          : thread,
-      ),
-    );
+  const handleDeletePost = async (postId: string) => {
+    await handleAPI(`/posts/${postId}`, {
+      method: 'DELETE',
+    });
+    window.location.reload();
   };
 
   return (
@@ -206,11 +130,11 @@ function Discussion({ posts }: Props) {
               <div className="text-sm text-gray-500">
                 Posted by {post.author.name} • {post.created_at}
               </div>
-              {(post.author.name === currentUserName ||
-                currentUserRole === 'organizer') && (
+
+              {(post.user_id === userId || isOrganizer) && (
                 <button
-                  onClick={() => handleDeleteThread(post.id)}
-                  className="text-xs text-red-600 mt-1"
+                  onClick={() => handleDeletePost(post.id)}
+                  className="text-xs text-red-600 mt-1 hover:underline"
                 >
                   Delete Thread
                 </button>
@@ -242,13 +166,10 @@ function Discussion({ posts }: Props) {
                         <div className="text-xs text-gray-500">
                           Reply by {comment.user.name} • {comment.created_at}
                         </div>
-                        {(comment.user_id === currentUserName ||
-                          currentUserRole === 'organizer') && (
+                        {(comment.user_id === userId || isOrganizer) && (
                           <button
-                            onClick={() =>
-                              handleDeleteReply(post.id, comment.id)
-                            }
-                            className="text-xs text-red-600"
+                            onClick={() => handleDeleteReply(comment.id)}
+                            className="text-xs text-red-600 hover:underline"
                           >
                             Delete Reply
                           </button>
@@ -260,46 +181,43 @@ function Discussion({ posts }: Props) {
               </div>
             )}
 
-            {/* Toggle Reply */}
-            {currentUserRole === 'organizer' && (
-              <div className="mt-2">
-                <button
-                  onClick={() =>
-                    setShowReplyBox(prev => ({
-                      ...prev,
-                      [post.id]: !prev[post.id],
-                    }))
-                  }
-                  className="text-sm text-blue-600 underline"
-                >
-                  {showReplyBox[post.id] ? 'Cancel' : 'Reply'}
-                </button>
+            <div className="mt-2">
+              <button
+                onClick={() =>
+                  setShowReplyBox(prev => ({
+                    ...prev,
+                    [post.id]: !prev[post.id],
+                  }))
+                }
+                className="text-sm text-blue-600 underline"
+              >
+                {showReplyBox[post.id] ? 'Cancel' : 'Reply'}
+              </button>
 
-                {showReplyBox[post.id] && (
-                  <div className="mt-2">
-                    <textarea
-                      rows={2}
-                      value={replyInputs[post.id] || ''}
-                      onChange={e =>
-                        setReplyInputs(prev => ({
-                          ...prev,
-                          [post.id]: e.target.value,
-                        }))
-                      }
-                      placeholder="Write a reply..."
-                      className="w-full border border-primary p-2 rounded-md"
-                    />
-                    <button
-                      onClick={() => handleReply(post.id)}
-                      className="mt-1 bg-primary text-white px-4 py-1 rounded disabled:opacity-50"
-                      disabled={!replyInputs[post.id]?.trim()}
-                    >
-                      Submit Reply
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
+              {showReplyBox[post.id] && (
+                <div className="mt-2">
+                  <textarea
+                    rows={2}
+                    value={replyInputs[post.id] || ''}
+                    onChange={e =>
+                      setReplyInputs(prev => ({
+                        ...prev,
+                        [post.id]: e.target.value,
+                      }))
+                    }
+                    placeholder="Write a reply..."
+                    className="w-full border border-primary p-2 rounded-md"
+                  />
+                  <button
+                    className="mt-1 bg-primary text-white px-4 py-1 rounded disabled:opacity-50"
+                    disabled={!replyInputs[post.id]?.trim()}
+                    onClick={() => handleReply(post.id, replyInputs[post.id])}
+                  >
+                    Submit Reply
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         ))}
       </div>

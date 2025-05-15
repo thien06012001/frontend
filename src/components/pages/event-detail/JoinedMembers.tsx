@@ -1,46 +1,39 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 
-type Attendee = {
-  id: number;
-  name: string;
-  email: string;
-  phone: string;
-  joinedAt: string;
+import { User } from '../../../types';
+import { useParams } from 'react-router';
+import { handleAPI } from '../../../handlers/api-handler';
+
+type Props = {
+  participants: User[];
 };
 
-const initialAttendees: Attendee[] = Array.from({ length: 42 }, (_, i) => ({
-  id: i + 1,
-  name: `Attendee ${i + 1}`,
-  email: `attendee${i + 1}@example.com`,
-  phone: `+12345678${i.toString().padStart(2, '0')}`,
-  joinedAt: new Date(2024, 0, i + 1).toLocaleDateString(),
-}));
-
-function JoinedMembers() {
-  const [attendees, setAttendees] = useState<Attendee[]>(initialAttendees);
+function JoinedMembers({ participants }: Props) {
   const [search, setSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
 
-  const filteredAttendees = useMemo(() => {
-    return attendees.filter(a =>
-      a.name.toLowerCase().includes(search.toLowerCase()),
-    );
-  }, [search, attendees]);
-
-  const totalPages = Math.ceil(filteredAttendees.length / pageSize);
-  const paginated = filteredAttendees.slice(
-    (currentPage - 1) * pageSize,
-    currentPage * pageSize,
-  );
+  const totalPages = Math.ceil(participants.length / pageSize);
+  const paginated = participants
+    .filter(participant =>
+      participant.name.toLowerCase().includes(search.toLowerCase()),
+    )
+    .slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   const handlePageChange = (page: number) => {
     if (page < 1 || page > totalPages) return;
     setCurrentPage(page);
   };
 
-  const handleKick = (id: number) => {
-    setAttendees(prev => prev.filter(a => a.id !== id));
+  const { id } = useParams();
+
+  const handleKick = async (userId: string) => {
+    await handleAPI(`/events/${id}/kick`, {
+      method: 'POST',
+      body: JSON.stringify({ userId }),
+    });
+
+    window.location.reload();
   };
 
   return (
@@ -66,7 +59,6 @@ function JoinedMembers() {
             <th className="px-3 py-2 text-left">Name</th>
             <th className="px-3 py-2 text-left">Email</th>
             <th className="px-3 py-2 text-left">Phone</th>
-            <th className="px-3 py-2 text-left">Joined At</th>
             <th className="px-3 py-2 text-left">Actions</th>
           </tr>
         </thead>
@@ -77,7 +69,6 @@ function JoinedMembers() {
               <td className="px-3 py-2">{attendee.name}</td>
               <td className="px-3 py-2">{attendee.email}</td>
               <td className="px-3 py-2">{attendee.phone}</td>
-              <td className="px-3 py-2">{attendee.joinedAt}</td>
               <td className="px-3 py-2">
                 <button
                   onClick={() => handleKick(attendee.id)}

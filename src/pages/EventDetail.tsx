@@ -8,6 +8,7 @@ import Reminder from '../components/pages/event-detail/Reminder';
 import Discussion from '../components/pages/event-detail/Discussion';
 import { Event } from '../types';
 import { useFetch } from '../hooks/useFetch';
+import useUser from '../hooks/redux/useUser';
 
 type OrganizerView =
   | 'info'
@@ -21,13 +22,15 @@ function EventDetail() {
   // 1. Non-hook values first
   const { id } = useParams();
 
-  const { data } = useFetch(`/events/${id}`, {
+  const { data, isLoading } = useFetch(`/events/${id}`, {
     method: 'GET',
   });
 
   const event = data?.data as Event;
 
-  const currentUserId = 'user-123'; // replace with real user ID
+  const user = useUser();
+
+  const currentUserId = user?.id || 'user-123'; // replace with real user ID
   const isOrganizer = !!event && event.owner_id === currentUserId;
 
   // 2. Hooks in fixed order
@@ -60,13 +63,12 @@ function EventDetail() {
     }
   }, [allowedTabs, tabParam, setSearchParams]);
 
-  // 3. If no event, render fallback
+  if (!event && isLoading) {
+    return <div>Loading...</div>;
+  }
+
   if (!event) {
-    return (
-      <main className="p-5">
-        <h1>Event not found</h1>
-      </main>
-    );
+    return <div>Event not found</div>;
   }
 
   // 4. Handlers and render logic
@@ -89,18 +91,27 @@ function EventDetail() {
         { label: 'Discussions', value: 'discussions' },
       ];
 
+  const participants = event.participants || [];
+
+  const requests = event.requests || [];
+  console.log(event);
+
   const renderSection = () => {
     switch (activeView) {
       case 'info':
         return <Info event={event} isOrganizer={isOrganizer} />;
       case 'discussions':
-        return <Discussion posts={event.posts} />;
+        return <Discussion posts={event.posts} isOrganizer={isOrganizer} />;
       case 'members':
-        return isOrganizer ? <JoinedMembers /> : null;
+        return isOrganizer ? (
+          <JoinedMembers participants={participants} />
+        ) : null;
       case 'requests':
-        return isOrganizer ? <Requests /> : null;
+        return isOrganizer ? <Requests requests={requests} /> : null;
       case 'invitations':
-        return isOrganizer ? <Invitations /> : null;
+        return isOrganizer ? (
+          <Invitations invitations={event.invitations} />
+        ) : null;
       case 'reminders':
         return isOrganizer ? (
           <Reminder eventStartDate={event.start_time} />
@@ -109,8 +120,6 @@ function EventDetail() {
         return null;
     }
   };
-
-  console.log('Event:', event);
 
   return (
     <div className="p-5 mt-5 border border-gray-200 shadow-md rounded-md">

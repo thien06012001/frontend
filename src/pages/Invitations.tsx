@@ -1,70 +1,44 @@
 import { useState, useMemo } from 'react';
 import InvitationPagination from '../components/pages/invitations/InvitationPagination';
-
-interface Invitation {
-  id: string;
-  eventName: string;
-  eventDate: string;
-  invitedAt: string;
-  status: 'pending' | 'accepted' | 'denied';
-}
-
-const mockInvitations: Invitation[] = [
-  {
-    id: '1',
-    eventName: 'Sharjah Light Festival 🖼️',
-    eventDate: 'Jan 12, 2024',
-    invitedAt: 'Dec 30, 2023',
-    status: 'pending',
-  },
-  {
-    id: '2',
-    eventName: 'Eid al-Fitr 2024 🕌',
-    eventDate: 'April 10, 2024',
-    invitedAt: 'Mar 28, 2024',
-    status: 'pending',
-  },
-  {
-    id: '3',
-    eventName: 'Lantern Festival 2024 🏮',
-    eventDate: 'Feb 24, 2024',
-    invitedAt: 'Feb 10, 2024',
-    status: 'pending',
-  },
-  {
-    id: '4',
-    eventName: 'Coachella Music Fest 🎶',
-    eventDate: 'June 2, 2024',
-    invitedAt: 'May 1, 2024',
-    status: 'pending',
-  },
-  {
-    id: '5',
-    eventName: 'Comic-Con San Diego 🎭',
-    eventDate: 'July 20, 2024',
-    invitedAt: 'July 1, 2024',
-    status: 'pending',
-  },
-];
+import useUser from '../hooks/redux/useUser';
+import { useFetch } from '../hooks/useFetch';
+import { Invitation } from '../types';
+import { handleAPI } from '../handlers/api-handler';
 
 function Invitations() {
-  const [invitations, setInvitations] = useState(mockInvitations);
+  const user = useUser();
+  const userId = user.id;
   const [currentPage, setCurrentPage] = useState(1);
+
+  const { data, isLoading } = useFetch(`/invitations/user/${userId}`, {
+    method: 'GET',
+  });
+  console.log('Fetched invitations:', data);
+  if (!data && isLoading) {
+    return <div>Loading...</div>;
+  }
+
+  if (!data) {
+    return <div>No invitations found.</div>;
+  }
+
+  console.log('Fetched invitations:', data);
   const invitationsPerPage = 3;
+  const invitationsData = data?.data as Invitation[];
 
-  const totalPages = Math.ceil(invitations.length / invitationsPerPage);
+  const totalPages = Math.ceil(invitationsData?.length / invitationsPerPage);
+  const start = (currentPage - 1) * invitationsPerPage;
+  const paginatedInvitations = invitationsData.slice(
+    start,
+    start + invitationsPerPage,
+  );
 
-  const paginatedInvitations = useMemo(() => {
-    const start = (currentPage - 1) * invitationsPerPage;
-    return invitations.slice(start, start + invitationsPerPage);
-  }, [currentPage, invitations]);
+  const handleResponse = async (id: string, action: 'accept' | 'reject') => {
+    await handleAPI(`/invitations/${id}/${action}`, {
+      method: 'PUT',
+    });
 
-  const handleResponse = (id: string, action: 'accepted' | 'denied') => {
-    setInvitations(prev =>
-      prev.map(invite =>
-        invite.id === id ? { ...invite, status: action } : invite,
-      ),
-    );
+    window.location.reload();
   };
 
   return (
@@ -83,23 +57,23 @@ function Invitations() {
         <tbody>
           {paginatedInvitations.map(invite => (
             <tr key={invite.id} className="border-t border-gray-200">
-              <td className="px-4 py-2">{invite.eventName}</td>
-              <td className="px-4 py-2">{invite.invitedAt}</td>
-              <td className="px-4 py-2">{invite.eventDate}</td>
+              <td className="px-4 py-2">{invite.event.name}</td>
+              <td className="px-4 py-2">{invite.created_at}</td>
+              <td className="px-4 py-2">{invite.event.start_time}</td>
               <td className="px-4 py-2 space-x-2">
                 {invite.status === 'pending' ? (
                   <>
                     <button
-                      onClick={() => handleResponse(invite.id, 'accepted')}
+                      onClick={() => handleResponse(invite.id, 'accept')}
                       className="px-3 py-1 cursor-pointer rounded bg-green-500 hover:bg-green-600 text-white text-sm"
                     >
                       Accept
                     </button>
                     <button
-                      onClick={() => handleResponse(invite.id, 'denied')}
+                      onClick={() => handleResponse(invite.id, 'reject')}
                       className="px-3 py-1 cursor-pointer rounded bg-red-500 hover:bg-red-600 text-white text-sm"
                     >
-                      Deny
+                      Reject
                     </button>
                   </>
                 ) : (

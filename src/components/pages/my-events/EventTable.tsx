@@ -1,16 +1,6 @@
-import { Link } from "react-router";
+import { Link } from 'react-router';
 
-
-interface Event {
-  id: string;
-  name: string;
-  date: string;
-  type: string;
-  slot: {
-    participated: number;
-    capacity: number;
-  };
-}
+import { Event } from '../../../types';
 
 function EventTable({
   events,
@@ -42,8 +32,10 @@ function EventTable({
             <td className="px-4 py-2 truncate">
               <Link to={`/event/${event.id}`}>{event.name}</Link>
             </td>
-            <td className="px-4 py-2">{event.date}</td>
-            <td className="px-4 py-2">{event.type}</td>
+            <td className="px-4 py-2">{event.start_time}</td>
+            <td className="px-4 py-2">
+              {event.is_public ? 'Public' : 'Private'}
+            </td>
             <td className="px-4 py-2">
               <Link
                 to={`/event/${event.id}/edit`}

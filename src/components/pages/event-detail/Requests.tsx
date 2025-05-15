@@ -1,30 +1,20 @@
 import { useMemo, useState } from 'react';
 
-type Request = {
-  id: number;
-  name: string;
-  email: string;
-  phone: string;
-  sentAt: string;
+import { Request } from '../../../types';
+import { handleAPI } from '../../../handlers/api-handler';
+
+type Props = {
+  requests: Request[];
 };
 
-const initialMockRequests: Request[] = Array.from({ length: 23 }, (_, i) => ({
-  id: i + 1,
-  name: `User ${i + 1}`,
-  email: `user${i + 1}@example.com`,
-  phone: `+12345678${i.toString().padStart(2, '0')}`, // ✅ Generate phone numbers
-  sentAt: new Date(2024, 3, i + 1).toLocaleDateString(),
-}));
-
-function Requests() {
-  const [requests, setRequests] = useState<Request[]>(initialMockRequests);
+function Requests({ requests }: Props) {
   const [search, setSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
 
   const filteredRequests = useMemo(() => {
     return requests.filter(r =>
-      r.name.toLowerCase().includes(search.toLowerCase()),
+      r.user.name.toLowerCase().includes(search.toLowerCase()),
     );
   }, [search, requests]);
 
@@ -37,6 +27,21 @@ function Requests() {
   const handlePageChange = (page: number) => {
     if (page < 1 || page > totalPages) return;
     setCurrentPage(page);
+  };
+
+  const handleApprove = async (requestId: string) => {
+    await handleAPI(`/requests/${requestId}/approve`, {
+      method: 'POST',
+    });
+
+    window.location.reload();
+  };
+
+  const handleReject = async (requestId: string) => {
+    await handleAPI(`/requests/${requestId}/reject`, {
+      method: 'POST',
+    });
+    window.location.reload();
   };
 
   return (
@@ -70,18 +75,22 @@ function Requests() {
           {paginated.map(request => (
             <tr key={request.id} className="border-t">
               <td className="px-3 py-2">{request.id}</td>
-              <td className="px-3 py-2">{request.name}</td>
-              <td className="px-3 py-2">{request.email}</td>
-              <td className="px-3 py-2">{request.phone}</td>
-              <td className="px-3 py-2">{request.sentAt}</td>
-              <td className="px-3 py-2">
+              <td className="px-3 py-2">{request.user.name}</td>
+              <td className="px-3 py-2">{request.user.email}</td>
+              <td className="px-3 py-2">{request.user.phone}</td>
+              <td className="px-3 py-2">{request.created_at}</td>
+              <td className="px-3 py-2 flex items-center gap-2">
                 <button
-                  onClick={() =>
-                    setRequests(prev => prev.filter(r => r.id !== request.id))
-                  }
-                  className="px-2 py-1 text-xs rounded bg-red-600 text-white"
+                  onClick={() => handleApprove(request.id)}
+                  className="px-2 cursor-pointer py-1 text-xs rounded bg-green-600 text-white"
                 >
-                  Remove
+                  Approve
+                </button>
+                <button
+                  onClick={() => handleReject(request.id)}
+                  className="px-2 py-1 cursor-pointer text-xs rounded bg-red-600 text-white"
+                >
+                  Reject
                 </button>
               </td>
             </tr>

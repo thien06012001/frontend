@@ -1,35 +1,23 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
+import { Invitation } from '../../../types';
+import { handleAPI } from '../../../handlers/api-handler';
+import { useParams } from 'react-router';
 
-type InvitationStatus = 'Pending' | 'Accepted' | 'Declined';
-
-type Invitation = {
-  id: number;
-  email: string;
-  sentAt: string;
-  status: InvitationStatus;
+type Props = {
+  invitations: Invitation[];
 };
 
-const statuses: InvitationStatus[] = ['Pending', 'Accepted', 'Declined'];
-
-const initialInvitations: Invitation[] = Array.from({ length: 20 }, (_, i) => ({
-  id: i + 1,
-  email: `invitee${i + 1}@example.com`,
-  sentAt: new Date(2024, 4, i + 1).toLocaleDateString(),
-  status: statuses[Math.floor(Math.random() * statuses.length)],
-}));
-
-function Invitations() {
-  const [invitations, setInvitations] =
-    useState<Invitation[]>(initialInvitations);
+function Invitations({ invitations }: Props) {
   const [search, setSearch] = useState('');
   const [emailInput, setEmailInput] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
 
-  const filtered = useMemo(() => {
-    const q = search.toLowerCase();
-    return invitations.filter(inv => inv.email.toLowerCase().includes(q));
-  }, [search, invitations]);
+  const { id } = useParams();
+
+  const filtered = invitations.filter(inv =>
+    inv.user.email.toLowerCase().includes(search.toLowerCase()),
+  );
 
   const totalPages = Math.ceil(filtered.length / pageSize);
   const paginated = filtered.slice(
@@ -37,23 +25,24 @@ function Invitations() {
     currentPage * pageSize,
   );
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!emailInput.trim()) return;
 
-    const newInvite: Invitation = {
-      id: Date.now(),
-      email: emailInput.trim(),
-      sentAt: new Date().toLocaleDateString(),
-      status: 'Pending',
-    };
+    await handleAPI(`/events/${id}/invitations`, {
+      method: 'POST',
+      body: JSON.stringify({ email: emailInput }),
+    });
 
-    setInvitations(prev => [newInvite, ...prev]);
     setEmailInput('');
     setCurrentPage(1);
   };
 
-  const handleRemove = (id: number) => {
-    setInvitations(prev => prev.filter(inv => inv.id !== id));
+  const handleRemove = async (id: string) => {
+    await handleAPI(`/invitations/${id}`, {
+      method: 'DELETE',
+    });
+
+    window.location.reload();
   };
 
   const handlePageChange = (page: number) => {
@@ -115,8 +104,8 @@ function Invitations() {
               <td className="px-3 py-2">
                 {(currentPage - 1) * pageSize + index + 1}
               </td>
-              <td className="px-3 py-2">{inv.email}</td>
-              <td className="px-3 py-2">{inv.sentAt}</td>
+              <td className="px-3 py-2">{inv.user.email}</td>
+              <td className="px-3 py-2">{inv.created_at}</td>
               <td className="px-3 py-2">{inv.status}</td>
               <td className="px-3 py-2">
                 <button
