@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Button from '../../ui/Button';
+import { Event } from '../../../types';
 
 export type EventInfo = {
   name: string;
@@ -13,13 +14,13 @@ export type EventInfo = {
 };
 
 type Props = {
-  event: EventInfo;
+  event: Event;
   isOrganizer: boolean;
 };
 
 function Info({ event, isOrganizer }: Props) {
   const [isEditing, setIsEditing] = useState(false);
-  const [form, setForm] = useState<EventInfo>(event);
+  const [form, setForm] = useState<Event>(event);
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -138,10 +139,10 @@ function Info({ event, isOrganizer }: Props) {
               onChange={handleFileSelect}
             />
             {/* Preview before saving */}
-            {form.imageUrl && (
+            {form.image_url && (
               <div className="mt-4 w-full h-64 overflow-hidden rounded-lg">
                 <img
-                  src={form.imageUrl}
+                  src={form.image_url}
                   alt="Preview"
                   className="w-full h-full object-cover"
                 />
@@ -150,7 +151,7 @@ function Info({ event, isOrganizer }: Props) {
           </>
         ) : (
           <img
-            src={form.imageUrl}
+            src={form.image_url}
             alt={form.name}
             className="w-full h-64 object-cover rounded-lg"
           />
@@ -181,13 +182,13 @@ function Info({ event, isOrganizer }: Props) {
           {isEditing ? (
             <input
               type="date"
-              value={form.date}
+              value={form.start_time}
               onChange={e => handleChange('date', e.target.value)}
               className="mt-1 border border-gray-300 rounded-md p-2 focus:outline-none"
             />
           ) : (
-            <time dateTime={form.date} className="mt-1">
-              {new Date(form.date).toLocaleDateString(undefined, {
+            <time dateTime={form.start_time} className="mt-1">
+              {new Date(form.start_time).toLocaleDateString(undefined, {
                 weekday: 'long',
                 year: 'numeric',
                 month: 'long',
@@ -203,13 +204,13 @@ function Info({ event, isOrganizer }: Props) {
           {isEditing ? (
             <input
               type="text"
-              value={form.timeRange}
+              value={form.end_time}
               onChange={e => handleChange('timeRange', e.target.value)}
               placeholder="18:00 - 22:00"
               className="mt-1 border border-gray-300 rounded-md p-2 focus:outline-none"
             />
           ) : (
-            <span className="mt-1">{form.timeRange}</span>
+            <span className="mt-1">{form.end_time}</span>
           )}
         </div>
 
@@ -218,7 +219,7 @@ function Info({ event, isOrganizer }: Props) {
           <label className="font-medium text-gray-600">Type</label>
           {isEditing ? (
             <select
-              value={form.type}
+              value={form.is_public}
               onChange={e => handleChange('type', e.target.value)}
               className="mt-1 border border-gray-300 rounded-md p-2 focus:outline-none"
             >
@@ -226,7 +227,7 @@ function Info({ event, isOrganizer }: Props) {
               <option>Private</option>
             </select>
           ) : (
-            <span className="mt-1">{form.type}</span>
+            <span className="mt-1">{form.is_public}</span>
           )}
         </div>
 
@@ -236,18 +237,18 @@ function Info({ event, isOrganizer }: Props) {
           {isEditing ? (
             <input
               type="number"
-              value={form.slot.capacity}
+              value={form.capacity}
               onChange={e =>
                 setForm(prev => ({
                   ...prev,
-                  slot: { ...prev.slot, capacity: Number(e.target.value) },
+                  capacity: Number(e.target.value),
                 }))
               }
               className="mt-1 border border-gray-300 rounded-md p-2 w-full focus:outline-none"
             />
           ) : (
             <span className="mt-1">
-              {form.slot.participated} / {form.slot.capacity}
+              {form.participants.length} / {form.capacity}
             </span>
           )}
         </div>

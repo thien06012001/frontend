@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Post } from '../../../types';
 
 type Thread = {
   id: number;
@@ -96,34 +97,26 @@ const initialThreads: Thread[] = [
   },
 ];
 
-function Discussion() {
-  const [threads, setThreads] = useState<Thread[]>(initialThreads);
+type Props = {
+  posts: Post[];
+};
+
+function Discussion({ posts }: Props) {
+  const [threads, setThreads] = useState<Post[]>(posts);
   const [newTitle, setNewTitle] = useState('');
   const [newContent, setNewContent] = useState('');
-  const [replyInputs, setReplyInputs] = useState<Record<number, string>>({});
-  const [showReplyBox, setShowReplyBox] = useState<Record<number, boolean>>({});
+  const [replyInputs, setReplyInputs] = useState<Record<string, string>>({});
+  const [showReplyBox, setShowReplyBox] = useState<Record<string, boolean>>({});
   const [currentUserRole] = useState<'organizer' | 'attendee'>('organizer');
   const [currentUserName] = useState('You');
-  const [showReplies, setShowReplies] = useState<Record<number, boolean>>({});
+  const [showReplies, setShowReplies] = useState<Record<string, boolean>>({});
 
   const handleCreateThread = () => {
-    if (!newTitle.trim() || !newContent.trim()) return;
-
-    const newThread: Thread = {
-      id: Date.now(),
-      author: currentUserName,
-      title: newTitle.trim(),
-      content: newContent.trim(),
-      postedAt: new Date().toLocaleString(),
-      replies: [],
-    };
-
-    setThreads(prev => [newThread, ...prev]);
     setNewTitle('');
     setNewContent('');
   };
 
-  const handleReply = (threadId: number) => {
+  const handleReply = (threadId: string) => {
     const replyText = replyInputs[threadId]?.trim();
     if (!replyText) return;
 
@@ -133,7 +126,7 @@ function Discussion() {
           ? {
               ...thread,
               replies: [
-                ...thread.replies,
+                ...thread.comments,
                 {
                   id: Date.now(),
                   author: currentUserName,
@@ -150,17 +143,17 @@ function Discussion() {
     setShowReplyBox(prev => ({ ...prev, [threadId]: false }));
   };
 
-  const handleDeleteThread = (id: number) => {
+  const handleDeleteThread = (id: string) => {
     setThreads(prev => prev.filter(t => t.id !== id));
   };
 
-  const handleDeleteReply = (threadId: number, replyId: number) => {
+  const handleDeleteReply = (postId: string, commentId: string) => {
     setThreads(prev =>
       prev.map(thread =>
-        thread.id === threadId
+        thread.id === postId
           ? {
               ...thread,
-              replies: thread.replies.filter(reply => reply.id !== replyId),
+              comments: thread.comments.filter(reply => reply.id !== commentId),
             }
           : thread,
       ),
@@ -200,23 +193,23 @@ function Discussion() {
 
       {/* List of Threads */}
       <div className="space-y-4 overflow-auto">
-        {threads.map(thread => (
+        {posts.map(post => (
           <div
-            key={thread.id}
+            key={post.id}
             className="border border-gray-300 rounded-md p-4 bg-white space-y-2"
           >
             <div>
-              <h4 className="text-lg font-semibold">{thread.title}</h4>
+              <h4 className="text-lg font-semibold">{post.title}</h4>
               <p className="text-gray-800 whitespace-pre-line">
-                {thread.content}
+                {post.content}
               </p>
               <div className="text-sm text-gray-500">
-                Posted by {thread.author} • {thread.postedAt}
+                Posted by {post.author.name} • {post.created_at}
               </div>
-              {(thread.author === currentUserName ||
+              {(post.author.name === currentUserName ||
                 currentUserRole === 'organizer') && (
                 <button
-                  onClick={() => handleDeleteThread(thread.id)}
+                  onClick={() => handleDeleteThread(post.id)}
                   className="text-xs text-red-600 mt-1"
                 >
                   Delete Thread
@@ -225,35 +218,35 @@ function Discussion() {
             </div>
 
             {/* Replies */}
-            {thread.replies.length > 0 && (
+            {post.comments.length > 0 && (
               <div className="mt-2">
                 <button
                   onClick={() =>
                     setShowReplies(prev => ({
                       ...prev,
-                      [thread.id]: !prev[thread.id],
+                      [post.id]: !prev[post.id],
                     }))
                   }
                   className="text-sm text-blue-600 underline"
                 >
-                  {showReplies[thread.id]
+                  {showReplies[post.id]
                     ? 'Hide replies'
-                    : `Show ${thread.replies.length} replies`}
+                    : `Show ${post.comments.length} replies`}
                 </button>
 
-                {showReplies[thread.id] && (
+                {showReplies[post.id] && (
                   <div className="ml-4 mt-2 border-l border-gray-200 pl-4 space-y-2">
-                    {thread.replies.map(reply => (
-                      <div key={reply.id}>
-                        <p className="text-gray-800">{reply.content}</p>
+                    {post.comments.map(comment => (
+                      <div key={comment.id}>
+                        <p className="text-gray-800">{comment.content}</p>
                         <div className="text-xs text-gray-500">
-                          Reply by {reply.author} • {reply.postedAt}
+                          Reply by {comment.user.name} • {comment.created_at}
                         </div>
-                        {(reply.author === currentUserName ||
+                        {(comment.user_id === currentUserName ||
                           currentUserRole === 'organizer') && (
                           <button
                             onClick={() =>
-                              handleDeleteReply(thread.id, reply.id)
+                              handleDeleteReply(post.id, comment.id)
                             }
                             className="text-xs text-red-600"
                           >
@@ -274,32 +267,32 @@ function Discussion() {
                   onClick={() =>
                     setShowReplyBox(prev => ({
                       ...prev,
-                      [thread.id]: !prev[thread.id],
+                      [post.id]: !prev[post.id],
                     }))
                   }
                   className="text-sm text-blue-600 underline"
                 >
-                  {showReplyBox[thread.id] ? 'Cancel' : 'Reply'}
+                  {showReplyBox[post.id] ? 'Cancel' : 'Reply'}
                 </button>
 
-                {showReplyBox[thread.id] && (
+                {showReplyBox[post.id] && (
                   <div className="mt-2">
                     <textarea
                       rows={2}
-                      value={replyInputs[thread.id] || ''}
+                      value={replyInputs[post.id] || ''}
                       onChange={e =>
                         setReplyInputs(prev => ({
                           ...prev,
-                          [thread.id]: e.target.value,
+                          [post.id]: e.target.value,
                         }))
                       }
                       placeholder="Write a reply..."
                       className="w-full border border-primary p-2 rounded-md"
                     />
                     <button
-                      onClick={() => handleReply(thread.id)}
+                      onClick={() => handleReply(post.id)}
                       className="mt-1 bg-primary text-white px-4 py-1 rounded disabled:opacity-50"
-                      disabled={!replyInputs[thread.id]?.trim()}
+                      disabled={!replyInputs[post.id]?.trim()}
                     >
                       Submit Reply
                     </button>

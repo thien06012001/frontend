@@ -50,6 +50,7 @@ function Login() {
         setUser({
           id: result.data.id,
           email: result.data.email,
+          role: result.data.role,
         }),
       );
       redirect('/');

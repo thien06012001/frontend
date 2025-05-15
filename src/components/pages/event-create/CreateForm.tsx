@@ -1,23 +1,36 @@
 // src/components/forms/CreateForm.tsx
-import React, { useState, ChangeEvent, FormEvent } from 'react';
+import { useState, ChangeEvent, FormEvent } from 'react';
 import Button from '../../ui/Button';
+import { handleAPI } from '../../../handlers/api-handler';
+import useUser from '../../../hooks/redux/useUser';
 
 const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
 
 export default function CreateForm() {
   const [eventType, setEventType] = useState<'Public' | 'Private'>('Public');
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [startTime, setStartTime] = useState('');
+  const [name, setName] = useState('');
   const [endTime, setEndTime] = useState('');
   const [startTimeError, setStartTimeError] = useState('');
   const [endTimeError, setEndTimeError] = useState('');
+  const [capacity, setCapacity] = useState<number | undefined>();
+  const [location, setLocation] = useState('');
+  const [date, setDate] = useState('');
+  const [description, setDescription] = useState('');
+  const [imageFile, setImageFile] = useState<FormData | null>(null);
+  const [image, setImage] = useState<File | null>(null);
+
+  const user = useUser();
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setPreviewUrl(URL.createObjectURL(file));
-    } else {
-      setPreviewUrl(null);
+    console.log('handleFileInput working!');
+    const files = e.target.files;
+
+    if (files) {
+      const formData = new FormData();
+      formData.append('my-image-file', files[0], files[0].name);
+      setImage(files[0]);
+      setImageFile(formData);
     }
   };
 
@@ -39,7 +52,7 @@ export default function CreateForm() {
     }
   };
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     let valid = true;
 
@@ -52,15 +65,47 @@ export default function CreateForm() {
       valid = false;
     }
     if (!valid) return;
+    const userId = user.id;
+    // Convert eventType to isPublic boolean
+    const isPublic = eventType === 'Public';
 
-    // TODO: submit form data to your API
+    const uploadRes = await fetch('http://localhost:5000/image-upload', {
+      method: 'POST',
+      body: imageFile,
+    });
+
+    if (!uploadRes.ok) {
+      console.error('Failed to upload image');
+      return;
+    }
+
+    const uploadData = await uploadRes.json();
+
+    const url = uploadData.url;
+
     const formData = {
-      eventType,
-      startTime,
-      endTime,
-      // …other fields
+      name,
+      start_time: `${date}T${startTime}:00`, // ISO-like string
+      end_time: `${date}T${endTime}:00`,
+      owner_id: userId,
+      is_public: isPublic,
+      location,
+      capacity: capacity || 0,
+      image_url: url, // optional, only if your model supports it
     };
-    console.log('Submitting:', formData);
+
+    const res = await handleAPI('/events', {
+      method: 'POST',
+      body: JSON.stringify(formData),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    const result = await res.json();
+    const data = result.data;
+
+    window.location.href = `/event/${data.id}`;
   };
 
   return (
@@ -74,9 +119,9 @@ export default function CreateForm() {
             className="hidden"
             onChange={handleFileChange}
           />
-          {previewUrl ? (
+          {image ? (
             <img
-              src={previewUrl}
+              src={URL.createObjectURL(image)}
               alt="Preview"
               className="object-cover w-full h-full"
             />
@@ -84,16 +129,8 @@ export default function CreateForm() {
             <span className="text-gray-400 text-2xl">🖼️</span>
           )}
         </label>
-
-        <div className="flex flex-col gap-2 w-full">
-          {/* Note about 24-hour format */}
-          <p className="text-sm text-gray-500">
-            Enter times in 24-hour format (00:00–23:59)
-          </p>
-
-          <label htmlFor="startTime" className="font-semibold">
-            Start time (HH:MM)
-          </label>
+        <div className="flex flex-col gap-2">
+          <label className="font-semibold">Time</label>
           <input
             id="startTime"
             type="text"
@@ -149,6 +186,8 @@ export default function CreateForm() {
               Event name
             </label>
             <input
+              value={name}
+              onChange={e => setName(e.target.value)}
               id="name"
               type="text"
               className="border border-gray-200 rounded-md p-1"
@@ -164,6 +203,8 @@ export default function CreateForm() {
               type="number"
               className="border border-gray-200 rounded-md p-1"
               placeholder="Event capacity"
+              value={capacity}
+              onChange={e => setCapacity(Number(e.target.value))}
             />
           </div>
         </div>
@@ -179,6 +220,8 @@ export default function CreateForm() {
               type="text"
               className="border border-gray-200 rounded-md p-1"
               placeholder="Enter the location"
+              value={location}
+              onChange={e => setLocation(e.target.value)}
             />
           </div>
           <div className="flex flex-col space-y-1">
@@ -189,6 +232,8 @@ export default function CreateForm() {
               id="date"
               type="date"
               className="border border-gray-200 rounded-md p-1"
+              value={date}
+              onChange={e => setDate(e.target.value)}
             />
           </div>
         </div>
@@ -202,6 +247,8 @@ export default function CreateForm() {
             id="description"
             placeholder="Description"
             className="p-2 border border-gray-200 rounded-md resize-none"
+            value={description}
+            onChange={e => setDescription(e.target.value)}
           />
         </div>
 

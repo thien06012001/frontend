@@ -53,6 +53,8 @@ function SignUp() {
       setErrorMessage(result.error);
     }
     setIsLoading(false);
+
+    window.location.href = '/login';
   };
 
   return (

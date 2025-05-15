@@ -6,22 +6,8 @@ import Requests from '../components/pages/event-detail/Requests';
 import Invitations from '../components/pages/event-detail/Invitations';
 import Reminder from '../components/pages/event-detail/Reminder';
 import Discussion from '../components/pages/event-detail/Discussion';
-
-const mockEvents = [
-  {
-    id: '1',
-    name: 'Sharjah Light Festival 🖼️',
-    description: 'A celebration of light and culture.',
-    date: '2024-01-12',
-    timeRange: '18:00 - 22:00',
-    type: 'Public',
-    location: 'Al Noor Mosque, Sharjah',
-    slot: { participated: 80, capacity: 120 },
-    organizerId: 'user-123',
-    imageUrl:
-      'https://www.eventbookings.com/wp-content/uploads/2018/03/cool-event-ideas-for-you-eventbookings-au.jpg',
-  },
-];
+import { Event } from '../types';
+import { useFetch } from '../hooks/useFetch';
 
 type OrganizerView =
   | 'info'
@@ -34,9 +20,15 @@ type OrganizerView =
 function EventDetail() {
   // 1. Non-hook values first
   const { id } = useParams();
-  const event = mockEvents.find(e => e.id === id);
+
+  const { data } = useFetch(`/events/${id}`, {
+    method: 'GET',
+  });
+
+  const event = data?.data as Event;
+
   const currentUserId = 'user-123'; // replace with real user ID
-  const isOrganizer = !!event && event.organizerId === currentUserId;
+  const isOrganizer = !!event && event.owner_id === currentUserId;
 
   // 2. Hooks in fixed order
   const [searchParams, setSearchParams] = useSearchParams();
@@ -102,7 +94,7 @@ function EventDetail() {
       case 'info':
         return <Info event={event} isOrganizer={isOrganizer} />;
       case 'discussions':
-        return <Discussion />;
+        return <Discussion posts={event.posts} />;
       case 'members':
         return isOrganizer ? <JoinedMembers /> : null;
       case 'requests':
@@ -110,11 +102,15 @@ function EventDetail() {
       case 'invitations':
         return isOrganizer ? <Invitations /> : null;
       case 'reminders':
-        return isOrganizer ? <Reminder eventStartDate={event.date} /> : null;
+        return isOrganizer ? (
+          <Reminder eventStartDate={event.start_time} />
+        ) : null;
       default:
         return null;
     }
   };
+
+  console.log('Event:', event);
 
   return (
     <div className="p-5 mt-5 border border-gray-200 shadow-md rounded-md">
