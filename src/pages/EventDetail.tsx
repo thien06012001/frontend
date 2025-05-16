@@ -31,7 +31,8 @@ function EventDetail() {
   const user = useUser();
 
   const currentUserId = user?.id || 'user-123'; // replace with real user ID
-  const isOrganizer = !!event && event.owner_id === currentUserId;
+  const isOrganizer =
+    (!!event && event.owner_id === currentUserId) || user?.role === 'admin';
 
   // 2. Hooks in fixed order
   const [searchParams, setSearchParams] = useSearchParams();
@@ -129,18 +130,36 @@ function EventDetail() {
         </Link>
       </nav>
 
-      {/* Navigation */}
-      <nav className="mt-4 flex gap-3 text-sm font-medium border border-primary bg-primary/5 p-3 rounded-md flex-wrap">
-        {navButtons.map(({ label, value }) => (
-          <button
-            key={value}
-            onClick={() => handleTabChange(value)}
-            className={activeView === value ? 'text-primary underline' : ''}
+      {/* Responsive Navigation */}
+      <div className="mt-4">
+        {/* Mobile: Select dropdown */}
+        <div className="sm:hidden">
+          <select
+            value={activeView}
+            onChange={e => handleTabChange(e.target.value as OrganizerView)}
+            className="w-full border border-primary rounded-md p-2 bg-primary/5 text-sm"
           >
-            {label}
-          </button>
-        ))}
-      </nav>
+            {navButtons.map(({ label, value }) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Desktop: Tab buttons */}
+        <nav className="hidden sm:flex gap-3 text-sm font-medium border border-primary bg-primary/5 p-3 rounded-md flex-wrap">
+          {navButtons.map(({ label, value }) => (
+            <button
+              key={value}
+              onClick={() => handleTabChange(value)}
+              className={activeView === value ? 'text-primary underline' : ''}
+            >
+              {label}
+            </button>
+          ))}
+        </nav>
+      </div>
 
       {/* Content */}
       <article

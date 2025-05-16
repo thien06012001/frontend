@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Invitation } from '../../../types';
 import { handleAPI } from '../../../handlers/api-handler';
 import { useParams } from 'react-router';
@@ -7,16 +7,29 @@ type Props = {
   invitations: Invitation[];
 };
 
-function Invitations({ invitations }: Props) {
+function formatDate(isoString: string) {
+  const d = new Date(isoString);
+  const day = d.getDate().toString().padStart(2, '0');
+  const month = (d.getMonth() + 1).toString().padStart(2, '0');
+  const year = d.getFullYear();
+  return `${day}/${month}/${year}`;
+}
+
+export default function Invitations({ invitations }: Props) {
+  const { id } = useParams<{ id: string }>();
   const [search, setSearch] = useState('');
   const [emailInput, setEmailInput] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [inputPage, setInputPage] = useState(1);
   const pageSize = 10;
 
-  const { id } = useParams();
-
-  const filtered = invitations.filter(inv =>
-    inv.user.email.toLowerCase().includes(search.toLowerCase()),
+  // filter by email
+  const filtered = useMemo(
+    () =>
+      invitations.filter(inv =>
+        inv.user.email.toLowerCase().includes(search.toLowerCase()),
+      ),
+    [search, invitations],
   );
 
   const totalPages = Math.ceil(filtered.length / pageSize);
@@ -27,105 +40,115 @@ function Invitations({ invitations }: Props) {
 
   const handleSend = async () => {
     if (!emailInput.trim()) return;
-
     await handleAPI(`/events/${id}/invitations`, {
       method: 'POST',
-      body: JSON.stringify({ email: emailInput }),
+      body: JSON.stringify({ email: emailInput.trim() }),
     });
-
     setEmailInput('');
     setCurrentPage(1);
+    setInputPage(1);
   };
 
-  const handleRemove = async (id: string) => {
-    await handleAPI(`/invitations/${id}`, {
-      method: 'DELETE',
-    });
-
+  const handleRemove = async (invId: string) => {
+    await handleAPI(`/invitations/${invId}`, { method: 'DELETE' });
     window.location.reload();
   };
 
   const handlePageChange = (page: number) => {
     if (page < 1 || page > totalPages) return;
     setCurrentPage(page);
+    setInputPage(page);
   };
 
   return (
-    <div className="space-y-4">
-      <h2 className="text-xl font-semibold">Invitations</h2>
-      <p className="text-sm text-gray-600">
-        Total invitations sent: {invitations.length}
-      </p>
-
-      {/* Send Invitation */}
-      <div className="flex gap-3 flex-wrap items-center">
+    <div className="space-y-6  sm:px-0">
+      {/* Title & Count */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        <h2 className="text-xl font-semibold">Invitations</h2>
+        <p className="text-sm text-gray-600">
+          Total invitations sent: {invitations.length}
+        </p>
+      </div>
+      <div className="flex flex-wrap-reverse gap-4 justify-between">
+        {/* Search */}
         <input
-          type="email"
-          value={emailInput}
-          onChange={e => setEmailInput(e.target.value)}
-          placeholder="Email"
-          className="border border-primary rounded-md p-2 outline-none"
+          type="text"
+          placeholder="Search invitations..."
+          value={search}
+          onChange={e => {
+            setSearch(e.target.value);
+            setCurrentPage(1);
+            setInputPage(1);
+          }}
+          className="w-full sm:w-64 border border-primary rounded-md p-2 outline-none"
         />
-        <button
-          onClick={handleSend}
-          className="bg-primary text-white px-4 py-2 rounded disabled:opacity-50"
-          disabled={!emailInput.trim()}
-        >
-          Send Invitation
-        </button>
+        {/* Send Invitation */}
+        <div className="flex flex-col xs:flex-row gap-3">
+          <input
+            type="email"
+            value={emailInput}
+            onChange={e => setEmailInput(e.target.value)}
+            placeholder="Enter email"
+            className="flex-1 border border-primary rounded-md p-2 outline-none"
+          />
+          <button
+            onClick={handleSend}
+            disabled={!emailInput.trim()}
+            className="bg-primary text-white px-4 py-2 rounded disabled:opacity-50"
+          >
+            Send Invitation
+          </button>
+        </div>
       </div>
 
-      {/* Search */}
-      <input
-        type="text"
-        placeholder="Search invitations..."
-        value={search}
-        onChange={e => {
-          setSearch(e.target.value);
-          setCurrentPage(1);
-        }}
-        className="border border-primary rounded-md p-2 w-64 outline-none"
-      />
-
       {/* Table */}
-      <table className="w-full table-auto border border-gray-200 text-sm">
-        <thead className="bg-gray-100">
-          <tr>
-            <th className="px-3 py-2 text-left">#</th>
-            <th className="px-3 py-2 text-left">Email</th>
-            <th className="px-3 py-2 text-left">Sent At</th>
-            <th className="px-3 py-2 text-left">Status</th>
-            <th className="px-3 py-2 text-left">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {paginated.map((inv, index) => (
-            <tr key={inv.id} className="border-t">
-              <td className="px-3 py-2">
-                {(currentPage - 1) * pageSize + index + 1}
-              </td>
-              <td className="px-3 py-2">{inv.user.email}</td>
-              <td className="px-3 py-2">{inv.created_at}</td>
-              <td className="px-3 py-2">{inv.status}</td>
-              <td className="px-3 py-2">
-                <button
-                  onClick={() => handleRemove(inv.id)}
-                  className={`px-2 py-1 text-xs rounded ${
-                    inv.status === 'Pending'
-                      ? 'bg-yellow-500 text-white'
-                      : 'bg-red-600 text-white'
-                  }`}
-                >
-                  {inv.status === 'Pending' ? 'Remove' : 'Delete'}
-                </button>
-              </td>
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[600px] table-auto border border-gray-200 text-sm">
+          <thead className="bg-gray-100">
+            <tr>
+              <th className="px-3 py-2 text-left">#</th>
+              <th className="px-3 py-2 text-left">Email</th>
+              <th className="px-3 py-2 text-left">Sent At</th>
+              <th className="px-3 py-2 text-left">Status</th>
+              <th className="px-3 py-2 text-left">Action</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {paginated.map((inv, idx) => (
+              <tr key={inv.id} className="border-t">
+                <td className="px-3 py-2">
+                  {(currentPage - 1) * pageSize + idx + 1}
+                </td>
+                <td className="px-3 py-2">{inv.user.email}</td>
+                <td className="px-3 py-2">{formatDate(inv.created_at)}</td>
+                <td className="px-3 py-2 capitalize">{inv.status}</td>
+                <td className="px-3 py-2">
+                  <button
+                    onClick={() => handleRemove(inv.id)}
+                    className={`px-2 py-1 text-xs rounded ${
+                      inv.status === 'pending'
+                        ? 'bg-yellow-500 text-white'
+                        : 'bg-red-600 text-white'
+                    }`}
+                  >
+                    {inv.status === 'pending' ? 'Remove' : 'Delete'}
+                  </button>
+                </td>
+              </tr>
+            ))}
+            {paginated.length === 0 && (
+              <tr>
+                <td colSpan={5} className="text-center py-4 text-gray-500">
+                  No invitations found.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
 
       {/* Pagination */}
-      <div className="flex justify-center gap-2 pt-2">
+      <div className="flex items-center justify-center gap-4">
         <button
           onClick={() => handlePageChange(currentPage - 1)}
           disabled={currentPage === 1}
@@ -133,19 +156,23 @@ function Invitations({ invitations }: Props) {
         >
           Prev
         </button>
-        {Array.from({ length: totalPages }, (_, idx) => (
-          <button
-            key={idx + 1}
-            onClick={() => handlePageChange(idx + 1)}
-            className={`px-3 py-1 border border-primary rounded ${
-              currentPage === idx + 1
-                ? 'bg-primary text-white'
-                : 'hover:bg-primary hover:text-white'
-            }`}
-          >
-            {idx + 1}
-          </button>
-        ))}
+
+        <div className="flex items-center space-x-2">
+          <input
+            type="number"
+            min={1}
+            max={totalPages}
+            value={inputPage}
+            onChange={e => setInputPage(Number(e.target.value))}
+            onKeyDown={e => {
+              if (e.key === 'Enter') handlePageChange(inputPage);
+            }}
+            onBlur={() => handlePageChange(inputPage)}
+            className="w-12 text-center border border-gray-300 rounded-md py-1"
+          />
+          <span className="text-sm text-gray-600">/ {totalPages}</span>
+        </div>
+
         <button
           onClick={() => handlePageChange(currentPage + 1)}
           disabled={currentPage === totalPages}
@@ -157,5 +184,3 @@ function Invitations({ invitations }: Props) {
     </div>
   );
 }
-
-export default Invitations;

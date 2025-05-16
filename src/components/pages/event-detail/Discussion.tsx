@@ -4,21 +4,21 @@ import useUser from '../../../hooks/redux/useUser';
 import { handleAPI } from '../../../handlers/api-handler';
 import { useParams } from 'react-router';
 
-type Thread = {
-  id: number;
-  author: string;
-  title: string;
-  content: string;
-  postedAt: string;
-  replies: Reply[];
-};
+// type Thread = {
+//   id: number;
+//   author: string;
+//   title: string;
+//   content: string;
+//   postedAt: string;
+//   replies: Reply[];
+// };
 
-type Reply = {
-  id: number;
-  author: string;
-  content: string;
-  postedAt: string;
-};
+// type Reply = {
+//   id: number;
+//   author: string;
+//   content: string;
+//   postedAt: string;
+// };
 
 type Props = {
   posts: Post[];
@@ -30,8 +30,7 @@ function Discussion({ posts, isOrganizer }: Props) {
   const [newContent, setNewContent] = useState('');
   const [replyInputs, setReplyInputs] = useState<Record<string, string>>({});
   const [showReplyBox, setShowReplyBox] = useState<Record<string, boolean>>({});
-  const [currentUserRole] = useState<'organizer' | 'attendee'>('organizer');
-  const [currentUserName] = useState('You');
+
   const [showReplies, setShowReplies] = useState<Record<string, boolean>>({});
 
   const user = useUser();
