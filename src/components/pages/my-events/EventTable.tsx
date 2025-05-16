@@ -23,7 +23,6 @@ function EventTable({
             Date {sortAsc ? '▲' : '▼'}
           </th>
           <th className="w-[20%] px-4 py-2">Type</th>
-          <th className="w-[20%] px-4 py-2">Actions</th>
         </tr>
       </thead>
       <tbody>
@@ -35,14 +34,6 @@ function EventTable({
             <td className="px-4 py-2">{event.start_time}</td>
             <td className="px-4 py-2">
               {event.is_public ? 'Public' : 'Private'}
-            </td>
-            <td className="px-4 py-2">
-              <Link
-                to={`/event/${event.id}/edit`}
-                className="text-sm text-blue-600 hover:underline"
-              >
-                Edit
-              </Link>
             </td>
           </tr>
         ))}

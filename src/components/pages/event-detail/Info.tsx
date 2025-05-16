@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, ChangeEvent } from 'react';
 import Button from '../../ui/Button';
 import { Event } from '../../../types';
+import { handleAPI } from '../../../handlers/api-handler';
 
 export type EventInfo = {
   name: string;
@@ -22,25 +23,40 @@ function Info({ event, isOrganizer }: Props) {
   const [isEditing, setIsEditing] = useState(false);
   const [form, setForm] = useState<Event>(event);
   const [dragOver, setDragOver] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [imageFile, setImageFile] = useState<FormData | null>(null);
+  const [image, setImage] = useState<File | null>(null);
 
   useEffect(() => {
     setForm(event);
   }, [event]);
 
-  const handleChange = <K extends keyof EventInfo>(
-    field: K,
-    value: EventInfo[K],
-  ) => setForm(prev => ({ ...prev, [field]: value }));
+  const handleChange = <K extends keyof Event>(field: K, value: Event[K]) =>
+    setForm(prev => ({ ...prev, [field]: value }));
 
   const readFile = (file: File) => {
     if (file.type.startsWith('image/')) {
       const reader = new FileReader();
       reader.onload = () => {
         const result = reader.result as string;
-        handleChange('imageUrl', result);
+        handleChange('image_url', result);
       };
       reader.readAsDataURL(file);
+    }
+  };
+
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    console.log('handleFileInput working!');
+    const files = e.target.files;
+
+    if (files) {
+      const formData = new FormData();
+      formData.append('my-image-file', files[0], files[0].name);
+      setImageFile(formData);
+      setImage(files[0]);
+      console.log('Image file set:', files[0]);
     }
   };
 
@@ -55,24 +71,66 @@ function Info({ event, isOrganizer }: Props) {
     e.preventDefault();
     setDragOver(true);
   };
+
   const handleDragLeave = () => setDragOver(false);
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      readFile(file);
-      e.target.value = '';
-    }
-  };
+  const handleSave = async () => {
+    try {
+      setIsSubmitting(true);
+      setErrorMessage('');
 
-  const handleSave = () => {
-    console.log('Saved event info:', form);
-    setIsEditing(false);
+      // Prepare data for update
+      const updateData = { ...form };
+      let url = form.image_url;
+      if (imageFile) {
+        const uploadRes = await fetch('http://localhost:5000/image-upload', {
+          method: 'POST',
+          body: imageFile,
+        });
+
+        if (!uploadRes.ok) {
+          console.error('Failed to upload image');
+          return;
+        }
+
+        const uploadData = await uploadRes.json();
+
+        url = uploadData.url;
+      }
+
+      // Send update request
+      const response = await handleAPI(`/events/${event.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          ...updateData,
+          image_url: url,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to update event');
+      }
+
+      // Update was successful
+      setIsEditing(false);
+
+      // Refresh the page to show updated data
+      window.location.reload();
+    } catch (error) {
+      console.error('Error updating event:', error);
+      setErrorMessage(
+        error instanceof Error ? error.message : 'Failed to update event',
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleCancel = () => {
     setForm(event);
     setIsEditing(false);
+    setErrorMessage('');
   };
 
   return (
@@ -95,8 +153,14 @@ function Info({ event, isOrganizer }: Props) {
           <div className="flex space-x-2">
             {isEditing ? (
               <>
-                <Button onClick={handleSave}>Save</Button>
-                <Button onClick={handleCancel} variant="outline">
+                <Button onClick={handleSave} disabled={isSubmitting}>
+                  {isSubmitting ? 'Saving...' : 'Save'}
+                </Button>
+                <Button
+                  onClick={handleCancel}
+                  variant="outline"
+                  disabled={isSubmitting}
+                >
                   Cancel
                 </Button>
               </>
@@ -106,6 +170,13 @@ function Info({ event, isOrganizer }: Props) {
           </div>
         )}
       </div>
+
+      {/* Error message */}
+      {errorMessage && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+          {errorMessage}
+        </div>
+      )}
 
       {/* Image Section (below title) */}
       <div>
@@ -136,13 +207,12 @@ function Info({ event, isOrganizer }: Props) {
               accept="image/*"
               ref={fileInputRef}
               className="hidden"
-              onChange={handleFileSelect}
+              onChange={handleFileChange}
             />
-            {/* Preview before saving */}
-            {form.image_url && (
+            {image && (
               <div className="mt-4 w-full h-64 overflow-hidden rounded-lg">
                 <img
-                  src={form.image_url}
+                  src={URL.createObjectURL(image)}
                   alt="Preview"
                   className="w-full h-full object-cover"
                 />
@@ -182,8 +252,14 @@ function Info({ event, isOrganizer }: Props) {
           {isEditing ? (
             <input
               type="date"
-              value={form.start_time}
-              onChange={e => handleChange('date', e.target.value)}
+              value={new Date(form.start_time).toISOString().split('T')[0]}
+              onChange={e => {
+                const newDate = e.target.value;
+                const oldTime = new Date(form.start_time)
+                  .toISOString()
+                  .split('T')[1];
+                handleChange('start_time', `${newDate}T${oldTime}`);
+              }}
               className="mt-1 border border-gray-300 rounded-md p-2 focus:outline-none"
             />
           ) : (
@@ -200,17 +276,27 @@ function Info({ event, isOrganizer }: Props) {
 
         {/* Time */}
         <div className="flex flex-col">
-          <label className="font-medium text-gray-600">Time</label>
+          <label className="font-medium text-gray-600">End Time</label>
           {isEditing ? (
             <input
-              type="text"
-              value={form.end_time}
-              onChange={e => handleChange('timeRange', e.target.value)}
-              placeholder="18:00 - 22:00"
+              type="time"
+              value={new Date(form.end_time).toTimeString().substring(0, 5)}
+              onChange={e => {
+                const newTime = e.target.value;
+                const currentDate = new Date(form.end_time)
+                  .toISOString()
+                  .split('T')[0];
+                handleChange('end_time', `${currentDate}T${newTime}:00`);
+              }}
               className="mt-1 border border-gray-300 rounded-md p-2 focus:outline-none"
             />
           ) : (
-            <span className="mt-1">{form.end_time}</span>
+            <span className="mt-1">
+              {new Date(form.end_time).toLocaleTimeString([], {
+                hour: '2-digit',
+                minute: '2-digit',
+              })}
+            </span>
           )}
         </div>
 
@@ -219,15 +305,19 @@ function Info({ event, isOrganizer }: Props) {
           <label className="font-medium text-gray-600">Type</label>
           {isEditing ? (
             <select
-              value={form.is_public}
-              onChange={e => handleChange('type', e.target.value)}
+              value={form.is_public ? 'Public' : 'Private'}
+              onChange={e =>
+                handleChange('is_public', e.target.value === 'Public')
+              }
               className="mt-1 border border-gray-300 rounded-md p-2 focus:outline-none"
             >
-              <option>Public</option>
-              <option>Private</option>
+              <option value="Public">Public</option>
+              <option value="Private">Private</option>
             </select>
           ) : (
-            <span className="mt-1">{form.is_public}</span>
+            <span className="mt-1">
+              {form.is_public ? 'Public' : 'Private'}
+            </span>
           )}
         </div>
 
@@ -244,6 +334,7 @@ function Info({ event, isOrganizer }: Props) {
                   capacity: Number(e.target.value),
                 }))
               }
+              min="1"
               className="mt-1 border border-gray-300 rounded-md p-2 w-full focus:outline-none"
             />
           ) : (

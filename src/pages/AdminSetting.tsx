@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react';
 import Button from '../components/ui/Button';
+import { useFetch } from '../hooks/useFetch';
+import { Event, User } from '../types';
+import { handleAPI } from '../handlers/api-handler';
 
 // Admin can configure system-wide limits and view statistics
 export type AdminSettings = {
@@ -15,14 +18,6 @@ export type AdminStats = {
   numPrivateEvents: number;
 };
 
-export type User = {
-  id: number;
-  name: string;
-  email: string;
-  phone: string;
-  role: string;
-};
-
 function AdminSetting() {
   // Settings state
   const [settings, setSettings] = useState<AdminSettings>({
@@ -32,18 +27,24 @@ function AdminSetting() {
   });
   const [dirty, setDirty] = useState(false);
 
-  // Statistics state
-  const [stats, setStats] = useState<AdminStats>({
-    totalUsers: 0,
-    totalEvents: 0,
-    numPublicEvents: 0,
-    numPrivateEvents: 0,
-  });
-
   // Users state
   const [users, setUsers] = useState<User[]>([]);
-  const [editUserId, setEditUserId] = useState<number | null>(null);
+  const [editUserId, setEditUserId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Partial<User>>({});
+
+  const { data: userData } = useFetch('/admin/users/all', {
+    method: 'GET',
+  });
+
+  const { data: eventData } = useFetch('/admin/events/all', {
+    method: 'GET',
+  });
+
+  const allUsers: User[] = userData?.data || [];
+  const allEvents: Event[] = eventData?.data || [];
+
+  const publicEvents = allEvents.filter(event => event.is_public);
+  const privateEvents = allEvents.filter(event => !event.is_public);
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -51,43 +52,13 @@ function AdminSetting() {
 
   // simulate fetching existing settings, stats, and users
   useEffect(() => {
-    // TODO: replace with real API calls
-    setSettings({
-      maxActiveEvents: 5,
-      maxInvitations: 20,
-      maxEventCapacity: 100,
-    });
-    setStats({
-      totalUsers: 1280,
-      totalEvents: 320,
-      numPublicEvents: 200,
-      numPrivateEvents: 120,
-    });
-    setUsers([
-      {
-        id: 1,
-        name: 'Alice Johnson',
-        email: 'alice@example.com',
-        phone: '555-123-4567',
-        role: 'organizer',
-      },
-      {
-        id: 2,
-        name: 'Bob Smith',
-        email: 'bob@example.com',
-        phone: '555-987-6543',
-        role: 'attendee',
-      },
-      {
-        id: 3,
-        name: 'Carol Lee',
-        email: 'carol@example.com',
-        phone: '555-555-0000',
-        role: 'admin',
-      },
-      // ...more mock users
-    ]);
-  }, []);
+    if (userData) {
+      setUsers(userData.data);
+    }
+  }, [userData]);
+
+  console.log('Fetched users:', allUsers);
+  console.log('Fetched events:', allEvents);
 
   const handleSettingChange = (field: keyof AdminSettings, value: number) => {
     setSettings(prev => ({ ...prev, [field]: value }));
@@ -123,10 +94,35 @@ function AdminSetting() {
     setEditForm({});
   };
 
-  const saveEditUser = (id: number) => {
+  // Pagination logic
+  const totalPages = Math.ceil(users.length / pageSize);
+
+  const paginatedUsers = users.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize,
+  );
+
+  const handlePageChange = (page: number) => {
+    if (page < 1 || page > totalPages) return;
+    setCurrentPage(page);
+  };
+
+  const editUser = async (userId: string, userBody: Partial<User>) => {
+    const response = await handleAPI(`/admin/users/${userId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(userBody),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to update user');
+    }
+
     setUsers(prev =>
       prev.map(u =>
-        u.id === id
+        u.id === userId
           ? {
               ...u,
               name: editForm.name || '',
@@ -140,37 +136,25 @@ function AdminSetting() {
     setEditForm({});
   };
 
-  // Pagination logic
-  const totalPages = Math.ceil(users.length / pageSize);
-  const paginatedUsers = users.slice(
-    (currentPage - 1) * pageSize,
-    currentPage * pageSize,
-  );
-
-  const handlePageChange = (page: number) => {
-    if (page < 1 || page > totalPages) return;
-    setCurrentPage(page);
-  };
-
   return (
     <div className="space-y-8 mt-4">
       {/* Statistics Section */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <div className="p-4 bg-gray-100 rounded-lg text-center">
           <h3 className="text-sm font-medium text-gray-600">Total Users</h3>
-          <p className="mt-2 text-2xl font-bold">{stats.totalUsers}</p>
+          <p className="mt-2 text-2xl font-bold">{allUsers.length}</p>
         </div>
         <div className="p-4 bg-gray-100 rounded-lg text-center">
           <h3 className="text-sm font-medium text-gray-600">Total Events</h3>
-          <p className="mt-2 text-2xl font-bold">{stats.totalEvents}</p>
+          <p className="mt-2 text-2xl font-bold">{allEvents.length}</p>
         </div>
         <div className="p-4 bg-gray-100 rounded-lg text-center">
           <h3 className="text-sm font-medium text-gray-600">Public Events</h3>
-          <p className="mt-2 text-2xl font-bold">{stats.numPublicEvents}</p>
+          <p className="mt-2 text-2xl font-bold">{publicEvents.length}</p>
         </div>
         <div className="p-4 bg-gray-100 rounded-lg text-center">
           <h3 className="text-sm font-medium text-gray-600">Private Events</h3>
-          <p className="mt-2 text-2xl font-bold">{stats.numPrivateEvents}</p>
+          <p className="mt-2 text-2xl font-bold">{privateEvents.length}</p>
         </div>
       </div>
 
@@ -301,7 +285,7 @@ function AdminSetting() {
                 <td className="px-3 py-2 space-x-2">
                   {editUserId === user.id ? (
                     <>
-                      <Button onClick={() => saveEditUser(user.id)}>
+                      <Button onClick={() => editUser(user.id, editForm)}>
                         Save
                       </Button>
                       <Button variant="outline" onClick={cancelEditUser}>
