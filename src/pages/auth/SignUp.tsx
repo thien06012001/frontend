@@ -58,8 +58,8 @@ function SignUp() {
   };
 
   return (
-    <div className="flex h-screen container p-5">
-      <section className="w-1/2 h-full border-[#9EB1C7] border rounded-l-md shadow-md px-10 flex flex-col justify-around">
+    <div className="flex h-screen lg:p-10">
+      <section className="w-full lg:w-1/2 h-full border-[#9EB1C7] border rounded-r-md shadow-md py-16 px-10 flex flex-col justify-around">
         <img src="/logo.png" alt="logo" className="mx-auto" />
         <form
           onSubmit={handleSubmit}
@@ -153,7 +153,7 @@ function SignUp() {
           </div>
         </form>
       </section>
-      <section className="bg-[#FFE8DE] flex items-center justify-center w-1/2 h-full border-[#9EB1C7] border rounded-r-md shadow-md">
+      <section className="bg-[#FFE8DE] hidden lg:flex items-center justify-center w-1/2 h-full border-[#9EB1C7] border rounded-l-md shadow-md">
         <img src="/auth.png" alt="auth image" />
       </section>
     </div>

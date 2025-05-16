@@ -1,21 +1,19 @@
 // components/NotificationPage.tsx
-// ------------------------------------------
-// NotificationPage Component
-// - Displays user notifications: updates, event reminders, and invitation requests.
-// - Tracks read/unread state and shows unread count.
-// - Allows marking non-invitation notifications as read.
-// - For invitation notifications, presents “Accept” and “Deny” actions.
-// ------------------------------------------
 
-import { Link } from 'react-router';
-import Button from '../components/ui/Button';
 import { useFetch } from '../hooks/useFetch';
 import useUser from '../hooks/redux/useUser';
 import { Notification } from '../types';
 
-// Mock data including an invitation notification
+/** Format ISO date string to DD/MM/YYYY */
+function formatDate(isoString: string) {
+  const d = new Date(isoString);
+  const day = d.getDate().toString().padStart(2, '0');
+  const month = (d.getMonth() + 1).toString().padStart(2, '0');
+  const year = d.getFullYear();
+  return `${day}/${month}/${year}`;
+}
 
-function NotificationPage() {
+export default function NotificationPage() {
   const user = useUser();
   const userId = user.id;
 
@@ -23,20 +21,22 @@ function NotificationPage() {
     method: 'GET',
   });
 
-  if (!data && isLoading) {
-    return <div>loading...</div>;
+  if (isLoading) {
+    return <div className="p-4">Loading...</div>;
   }
-
   const notifications: Notification[] = data?.data || [];
-  console.log('notifications', notifications);
+
   return (
-    <div className="p-5 mt-5 border border-gray-200 shadow-md rounded-md space-y-4 bg-white">
+    <div className="p-4 sm:p-5 mt-5 border border-gray-200 shadow-md rounded-md bg-white space-y-4">
       {/* Header with unread count */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
         <h1 className="text-3xl font-semibold">Notifications</h1>
+        <span className="mt-2 sm:mt-0 text-sm text-gray-600">
+          Unread: {notifications.filter(n => !n.isRead).length}
+        </span>
       </div>
 
-      <ul className="space-y-2">
+      <ul className="space-y-3">
         {notifications.length === 0 && (
           <p className="text-gray-500 text-sm">No notifications.</p>
         )}
@@ -45,54 +45,34 @@ function NotificationPage() {
           <li
             key={n.id}
             className={`
-              flex justify-between items-start
-              border border-gray-200 p-3 rounded-md
+              flex flex-col sm:flex-row sm:justify-between
+              border border-gray-200 p-4 rounded-md
               ${!n.isRead ? 'bg-yellow-50' : 'bg-white'}
             `}
           >
             <div className="space-y-1">
-              <p className="text-sm">
-                <span className="text-lg font-semibold">{n.description}</span>
-              </p>
-              <div className="text-xs text-gray-400 flex gap-2">
+              <p className="text-sm font-medium break-words">{n.description}</p>
+              <div className="text-xs text-gray-400 flex flex-wrap items-center gap-2">
                 <span>{n.title}</span>
                 <span>•</span>
-                <span>{n.created_at}</span>
+                <span>{formatDate(n.created_at)}</span>
               </div>
             </div>
 
-            {/* <div className="flex flex-col space-y-2">
-              {n.type === 'Invitation' && !n.read && (
-                <>
-                  <Button
-                    onClick={() => handleAccept(n.id)}
-                    className="px-2 py-1 text-xs rounded bg-green-500 text-white"
-                  >
-                    Accept
-                  </Button>
-                  <Button
-                    onClick={() => handleDeny(n.id)}
-                    className="px-2 py-1 text-xs rounded bg-red-500 text-white"
-                  >
-                    Deny
-                  </Button>
-                </>
-              )}
-
-              {n.type !== 'Invitation' && !n.read && (
-                <button
-                  onClick={() => markAsRead(n.id)}
-                  className="text-xs text-blue-600 hover:underline"
-                >
-                  Mark as read
+            {/* Invitation actions could go here; for now we just show status */}
+            {/* {n.type === 'invitation' && (
+              <div className="mt-3 sm:mt-0 flex gap-2">
+                <button className="px-3 py-1 rounded bg-green-500 hover:bg-green-600 text-white text-sm">
+                  Accept
                 </button>
-              )}
-            </div> */}
+                <button className="px-3 py-1 rounded bg-red-500 hover:bg-red-600 text-white text-sm">
+                  Deny
+                </button>
+              </div>
+            )} */}
           </li>
         ))}
       </ul>
     </div>
   );
 }
-
-export default NotificationPage;

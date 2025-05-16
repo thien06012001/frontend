@@ -59,12 +59,12 @@ function Login() {
     setIsLoading(false);
   };
   return (
-    <div className="flex h-screen container p-10">
-      <section className="bg-[#FFE8DE] flex items-center justify-center w-1/2 h-full border-[#9EB1C7] border rounded-l-md shadow-md">
+    <div className="flex h-screen  lg:p-10">
+      <section className="bg-[#FFE8DE] hidden lg:flex items-center justify-center w-1/2 h-full border-[#9EB1C7] border rounded-l-md shadow-md">
         <img src="/auth.png" alt="auth image" />
       </section>
 
-      <section className="w-1/2 h-full border-[#9EB1C7] border rounded-r-md shadow-md py-16 px-10 flex flex-col justify-around">
+      <section className="w-full lg:w-1/2 h-full border-[#9EB1C7] border rounded-r-md shadow-md py-16 px-10 flex flex-col justify-around">
         <img src="/logo.png" alt="logo" className="mx-auto" />
 
         <form
@@ -113,7 +113,7 @@ function Login() {
             {isLoading ? 'Loading...' : 'Login'}
           </Button>
 
-          <div className="flex justify-between items-center w-full my-2">
+          <div className="flex flex-col sm:flex-row justify-between items-center w-full my-2">
             <Link to={'/'} className="underline text-primary">
               For got password?
             </Link>
