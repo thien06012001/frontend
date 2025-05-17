@@ -56,7 +56,7 @@ function JoinedMembers({ participants }: Props) {
         <table className="w-full min-w-[600px] table-auto border border-gray-200 text-sm">
           <thead className="bg-gray-100">
             <tr>
-              <th className="px-3 py-2 text-left">#</th>
+              <th className="px-3 py-2 text-left">#Id</th>
               <th className="px-3 py-2 text-left">Name</th>
               <th className="px-3 py-2 text-left">Email</th>
               <th className="px-3 py-2 text-left">Phone</th>

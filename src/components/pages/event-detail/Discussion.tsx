@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Post } from '../../../types';
 import useUser from '../../../hooks/redux/useUser';
 import { handleAPI } from '../../../handlers/api-handler';
 import { useParams } from 'react-router';
+import { useFetch } from '../../../hooks/useFetch';
 
 // type Thread = {
 //   id: number;
@@ -25,7 +26,20 @@ type Props = {
   isOrganizer: boolean;
 };
 
-function Discussion({ posts, isOrganizer }: Props) {
+function Discussion({ isOrganizer }: Props) {
+  const { id } = useParams();
+
+  const { data: postsData } = useFetch(`/events/${id}/discussions`, {
+    method: 'GET',
+  });
+  const [posts, setPosts] = useState<Post[]>([]);
+
+  useEffect(() => {
+    if (postsData) {
+      setPosts(postsData.data);
+    }
+  }, [postsData]);
+
   const [newTitle, setNewTitle] = useState('');
   const [newContent, setNewContent] = useState('');
   const [replyInputs, setReplyInputs] = useState<Record<string, string>>({});
@@ -34,7 +48,6 @@ function Discussion({ posts, isOrganizer }: Props) {
   const [showReplies, setShowReplies] = useState<Record<string, boolean>>({});
 
   const user = useUser();
-  const { id } = useParams();
 
   const userId = user.id;
 

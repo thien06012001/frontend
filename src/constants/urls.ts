@@ -12,3 +12,4 @@ export const api_endpoints = {
 };
 
 export const BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
+export const SECRET_KEY = import.meta.env.VITE_SECRET_KEY || '';

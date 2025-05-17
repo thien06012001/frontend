@@ -42,15 +42,14 @@ function Login() {
 
     const result = await res.json();
 
+    const token = result.data.token;
     if (!res.ok) {
       setErrorMessage(result.error);
     } else {
       // Store user data in local storage
       dispatch(
         setUser({
-          id: result.data.id,
-          email: result.data.email,
-          role: result.data.role,
+          token,
         }),
       );
       redirect('/');

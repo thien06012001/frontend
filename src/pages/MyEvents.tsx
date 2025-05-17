@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import EventFilter from '../components/pages/my-events/EventFilter';
 import EventTable from '../components/pages/my-events/EventTable';
 import Pagination from '../components/pages/my-events/Pagination';
@@ -13,7 +13,7 @@ function MyEvents() {
     method: 'GET',
   });
 
-  const myEvents = data?.data.ownedEvents || []; // Updated to use ownedEvents
+  const myEvents = useMemo(() => data?.data.ownedEvents || [], [data]);
 
   const [filterType, setFilterType] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
@@ -23,8 +23,36 @@ function MyEvents() {
 
   const handleSortByDate = () => setSortAsc(prev => !prev);
 
-  const totalPages = Math.ceil(myEvents.length / eventsPerPage);
-  const paginatedEvents = myEvents.slice(
+  // ✅ Combined filter + search + sort
+  const filteredEvents = useMemo(() => {
+    let events = [...myEvents];
+
+    // Filter
+    if (filterType === 'Public') {
+      events = events.filter(e => e.is_public);
+    } else if (filterType === 'Private') {
+      events = events.filter(e => !e.is_public);
+    }
+
+    // Search
+    if (searchTerm.trim()) {
+      events = events.filter(e =>
+        e.name.toLowerCase().includes(searchTerm.toLowerCase()),
+      );
+    }
+
+    // Sort
+    events.sort((a, b) => {
+      const dateA = new Date(a.start_time).getTime();
+      const dateB = new Date(b.start_time).getTime();
+      return sortAsc ? dateA - dateB : dateB - dateA;
+    });
+
+    return events;
+  }, [myEvents, filterType, searchTerm, sortAsc]);
+
+  const totalPages = Math.ceil(filteredEvents.length / eventsPerPage);
+  const paginatedEvents = filteredEvents.slice(
     (currentPage - 1) * eventsPerPage,
     currentPage * eventsPerPage,
   );

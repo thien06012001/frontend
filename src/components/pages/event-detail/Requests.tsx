@@ -1,10 +1,8 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Request } from '../../../types';
 import { handleAPI } from '../../../handlers/api-handler';
-
-type Props = {
-  requests: Request[];
-};
+import { useFetch } from '../../../hooks/useFetch';
+import { useParams } from 'react-router';
 
 function formatDate(isoString: string) {
   const d = new Date(isoString);
@@ -14,11 +12,24 @@ function formatDate(isoString: string) {
   return `${day}/${month}/${year}`;
 }
 
-export default function Requests({ requests }: Props) {
+export default function Requests() {
+  const { id } = useParams();
+
+  const { data: requestData } = useFetch(`/events/${id}/requests`, {
+    method: 'GET',
+  });
+
   const [search, setSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [inputPage, setInputPage] = useState(1);
   const pageSize = 10;
+  const [requests, setRequests] = useState<Request[]>(requestData?.data || []);
+
+  useEffect(() => {
+    if (requestData) {
+      setRequests(requestData.data);
+    }
+  }, [requestData]);
 
   const filteredRequests = useMemo(
     () =>

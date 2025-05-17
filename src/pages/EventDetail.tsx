@@ -94,9 +94,6 @@ function EventDetail() {
 
   const participants = event.participants || [];
 
-  const requests = event.requests || [];
-  console.log(event);
-
   const renderSection = () => {
     switch (activeView) {
       case 'info':
@@ -108,11 +105,9 @@ function EventDetail() {
           <JoinedMembers participants={participants} />
         ) : null;
       case 'requests':
-        return isOrganizer ? <Requests requests={requests} /> : null;
+        return isOrganizer ? <Requests /> : null;
       case 'invitations':
-        return isOrganizer ? (
-          <Invitations invitations={event.invitations} />
-        ) : null;
+        return isOrganizer ? <Invitations /> : null;
       case 'reminders':
         return isOrganizer ? (
           <Reminder eventStartDate={event.start_time} />

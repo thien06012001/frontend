@@ -20,7 +20,6 @@ export default function AdminSetting() {
   // Settings state
   const [settings, setSettings] = useState({
     maxActiveEvents: 5,
-    maxInvitations: 20,
     maxEventCapacity: 100,
   });
   const [dirty, setDirty] = useState(false);
@@ -32,11 +31,14 @@ export default function AdminSetting() {
 
   const { data: userData } = useFetch('/admin/users/all', { method: 'GET' });
   const { data: eventData } = useFetch('/admin/events/all', { method: 'GET' });
+  const { data: settingsData } = useFetch('/settings', { method: 'GET' });
+  console.log(settingsData);
 
   const allUsers: (User & { created_at: string })[] = useMemo(
     () => userData?.data || [],
     [userData],
   );
+
   const allEvents: Event[] = eventData?.data || [];
   const publicEvents = allEvents.filter(e => e.is_public);
   const privateEvents = allEvents.filter(e => !e.is_public);
@@ -50,7 +52,14 @@ export default function AdminSetting() {
     if (allUsers.length) {
       setUsers(allUsers);
     }
-  }, [allUsers]);
+
+    if (settingsData) {
+      setSettings({
+        maxActiveEvents: settingsData.setting.maxActiveEvents,
+        maxEventCapacity: settingsData.setting.maxEventCapacity,
+      });
+    }
+  }, [allUsers, settingsData]);
 
   // Keep inputPage synced to currentPage
   useEffect(() => {
@@ -83,18 +92,6 @@ export default function AdminSetting() {
     setSettings(prev => ({ ...prev, [field]: value }));
     setDirty(true);
   };
-  const handleSaveSettings = () => {
-    console.log('Saved admin settings:', settings);
-    setDirty(false);
-  };
-  const handleResetSettings = () => {
-    setSettings({
-      maxActiveEvents: 5,
-      maxInvitations: 20,
-      maxEventCapacity: 100,
-    });
-    setDirty(false);
-  };
 
   const startEditUser = (u: User) => {
     setEditUserId(u.id);
@@ -121,6 +118,36 @@ export default function AdminSetting() {
     cancelEditUser();
   };
 
+  const updateSettings = async () => {
+    const res = await handleAPI('/settings', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(settings),
+    });
+    if (!res.ok) throw new Error('Failed to update settings');
+    setDirty(false);
+  };
+
+  const handleReset = async () => {
+    const newSetting = {
+      maxActiveEvents: 5,
+      maxEventCapacity: 50,
+    };
+    const res = await handleAPI('/settings', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        maxActiveEvents: 5,
+        maxEventCapacity: 50,
+      }),
+    });
+
+    if (!res.ok) throw new Error('Failed to reset settings');
+
+    setSettings(newSetting);
+    setDirty(false);
+  };
+
   return (
     <div className="space-y-8 mt-4 p-4">
       {/* Statistics */}
@@ -141,7 +168,7 @@ export default function AdminSetting() {
       {/* Settings */}
       <div className="p-6 bg-white rounded-lg shadow-md space-y-6">
         <h1 className="text-2xl font-bold">Admin Settings</h1>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label className="block font-medium text-gray-700">
               Max Active Events per User
@@ -156,23 +183,10 @@ export default function AdminSetting() {
               className="mt-1 w-full border border-gray-300 rounded-md p-2 focus:outline-none"
             />
           </div>
+
           <div>
             <label className="block font-medium text-gray-700">
-              Max Invitations per User
-            </label>
-            <input
-              type="number"
-              min={1}
-              value={settings.maxInvitations}
-              onChange={e =>
-                handleSettingChange('maxInvitations', Number(e.target.value))
-              }
-              className="mt-1 w-full border border-gray-300 rounded-md p-2 focus:outline-none"
-            />
-          </div>
-          <div>
-            <label className="block font-medium text-gray-700">
-              Default Event Capacity
+              Max Event Capacity
             </label>
             <input
               type="number"
@@ -186,10 +200,10 @@ export default function AdminSetting() {
           </div>
         </div>
         <div className="flex space-x-2">
-          <Button onClick={handleSaveSettings} disabled={!dirty}>
+          <Button onClick={updateSettings} disabled={!dirty}>
             Save Settings
           </Button>
-          <Button variant="outline" onClick={handleResetSettings}>
+          <Button variant="outline" onClick={handleReset}>
             Reset
           </Button>
         </div>

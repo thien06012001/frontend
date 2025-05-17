@@ -1,11 +1,8 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Invitation } from '../../../types';
 import { handleAPI } from '../../../handlers/api-handler';
 import { useParams } from 'react-router';
-
-type Props = {
-  invitations: Invitation[];
-};
+import { useFetch } from '../../../hooks/useFetch';
 
 function formatDate(isoString: string) {
   const d = new Date(isoString);
@@ -15,8 +12,20 @@ function formatDate(isoString: string) {
   return `${day}/${month}/${year}`;
 }
 
-export default function Invitations({ invitations }: Props) {
+export default function Invitations() {
   const { id } = useParams<{ id: string }>();
+  const { data: invitationsData } = useFetch(`/events/${id}/invitations`, {
+    method: 'GET',
+  });
+  console.log('invitationsData', invitationsData);
+  const [invitations, setInvitations] = useState<Invitation[]>([]);
+
+  useEffect(() => {
+    if (invitationsData) {
+      setInvitations(invitationsData.data);
+    }
+  }, [invitationsData]);
+
   const [search, setSearch] = useState('');
   const [emailInput, setEmailInput] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
