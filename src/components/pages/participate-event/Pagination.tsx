@@ -1,7 +1,10 @@
-// components/Pagination.tsx
+// src/components/pages/participate-event/Pagination.tsx
 
 import { useState, useEffect, KeyboardEvent } from 'react';
 
+/**
+ * Props for the pagination component in the ParticipateEvents page.
+ */
 interface PaginationProps {
   /** The currently active page (1-based index) */
   currentPage: number;
@@ -14,18 +17,31 @@ interface PaginationProps {
   onPageChange: (page: number) => void;
 }
 
+/**
+ * Renders pagination controls with "Prev" and "Next" buttons,
+ * plus an input for direct page entry.
+ * Synchronizes the local input field with the external currentPage,
+ * and ensures values remain within valid bounds.
+ */
 export default function Pagination({
   currentPage,
   totalPages,
   onPageChange,
 }: PaginationProps) {
-  const [inputPage, setInputPage] = useState(currentPage);
+  // Local state for the numeric input field
+  const [inputPage, setInputPage] = useState<number>(currentPage);
 
-  // Keep local input in sync with external currentPage
+  /**
+   * Synchronize the input field whenever currentPage prop changes
+   */
   useEffect(() => {
     setInputPage(currentPage);
   }, [currentPage]);
 
+  /**
+   * Handle Enter key press in the page input:
+   * clamp to [1, totalPages], then trigger page change
+   */
   const handleInputKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       const next = Math.max(1, Math.min(totalPages, inputPage));
@@ -33,6 +49,10 @@ export default function Pagination({
     }
   };
 
+  /**
+   * Handle blur event on the input field:
+   * clamp and trigger page change to keep URL/state in sync
+   */
   const handleInputBlur = () => {
     const next = Math.max(1, Math.min(totalPages, inputPage));
     onPageChange(next);
@@ -40,6 +60,7 @@ export default function Pagination({
 
   return (
     <div className="flex items-center justify-center gap-3 pt-2">
+      {/* Button to go to the previous page; disabled at first page */}
       <button
         onClick={() => onPageChange(currentPage - 1)}
         disabled={currentPage === 1}
@@ -48,6 +69,7 @@ export default function Pagination({
         Prev
       </button>
 
+      {/* Numeric input and total page indicator */}
       <div className="flex items-center gap-2">
         <input
           type="number"
@@ -62,6 +84,7 @@ export default function Pagination({
         <span className="text-sm text-gray-600">/ {totalPages}</span>
       </div>
 
+      {/* Button to go to the next page; disabled on last page */}
       <button
         onClick={() => onPageChange(currentPage + 1)}
         disabled={currentPage === totalPages}
