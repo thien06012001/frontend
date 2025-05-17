@@ -1,6 +1,7 @@
 import { Link } from 'react-router';
 
 import { Event } from '../../../types';
+import { formatDate } from '../../../libs/utils';
 
 function EventTable({
   events,
@@ -31,7 +32,7 @@ function EventTable({
             <td className="px-4 py-2 truncate">
               <Link to={`/event/${event.id}`}>{event.name}</Link>
             </td>
-            <td className="px-4 py-2">{event.start_time}</td>
+            <td className="px-4 py-2">{formatDate(event.start_time)}</td>
             <td className="px-4 py-2">
               {event.is_public ? 'Public' : 'Private'}
             </td>

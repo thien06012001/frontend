@@ -5,15 +5,7 @@ import Button from '../../ui/Button'; // Reusable button component
 import { Event } from '../../../types';
 import { handleAPI } from '../../../handlers/api-handler';
 import useUser from '../../../hooks/redux/useUser';
-
-/** Manually format an ISO date string as DD/MM/YYYY */
-function formatDate(isoString: string) {
-  const d = new Date(isoString);
-  const day = d.getDate().toString().padStart(2, '0');
-  const month = (d.getMonth() + 1).toString().padStart(2, '0');
-  const year = d.getFullYear();
-  return `${day}/${month}/${year}`;
-}
+import { formatDate } from '../../../libs/utils';
 
 export default function EventTable({
   events,

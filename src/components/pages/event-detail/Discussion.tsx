@@ -5,34 +5,24 @@ import { handleAPI } from '../../../handlers/api-handler';
 import { useParams } from 'react-router';
 import { useFetch } from '../../../hooks/useFetch';
 
-// type Thread = {
-//   id: number;
-//   author: string;
-//   title: string;
-//   content: string;
-//   postedAt: string;
-//   replies: Reply[];
-// };
-
-// type Reply = {
-//   id: number;
-//   author: string;
-//   content: string;
-//   postedAt: string;
-// };
-
 type Props = {
-  posts: Post[];
   isOrganizer: boolean;
 };
 
 function Discussion({ isOrganizer }: Props) {
   const { id } = useParams();
-
   const { data: postsData } = useFetch(`/events/${id}/discussions`, {
     method: 'GET',
   });
   const [posts, setPosts] = useState<Post[]>([]);
+  const [newTitle, setNewTitle] = useState('');
+  const [newContent, setNewContent] = useState('');
+  const [replyInputs, setReplyInputs] = useState<Record<string, string>>({});
+  const [showReplyBox, setShowReplyBox] = useState<Record<string, boolean>>({});
+  const [showReplies, setShowReplies] = useState<Record<string, boolean>>({});
+
+  const user = useUser();
+  const userId = user.id;
 
   useEffect(() => {
     if (postsData) {
@@ -40,34 +30,34 @@ function Discussion({ isOrganizer }: Props) {
     }
   }, [postsData]);
 
-  const [newTitle, setNewTitle] = useState('');
-  const [newContent, setNewContent] = useState('');
-  const [replyInputs, setReplyInputs] = useState<Record<string, string>>({});
-  const [showReplyBox, setShowReplyBox] = useState<Record<string, boolean>>({});
-
-  const [showReplies, setShowReplies] = useState<Record<string, boolean>>({});
-
-  const user = useUser();
-
-  const userId = user.id;
-
   const handleCreateThread = async () => {
-    await handleAPI('/posts', {
+    const res = await handleAPI('/posts', {
       method: 'POST',
       body: JSON.stringify({
         title: newTitle,
         content: newContent,
-        eventId: id, // Replace with actual event ID
+        eventId: id,
         userId: userId,
       }),
     });
-    setNewTitle('');
-    setNewContent('');
-    window.location.reload();
+
+    if (res.ok) {
+      const newPost = await res.json();
+      setPosts(prev => [
+        {
+          ...newPost.data,
+          author: user, // fallback: use current user
+          comments: [],
+        },
+        ...prev,
+      ]);
+      setNewTitle('');
+      setNewContent('');
+    }
   };
 
   const handleReply = async (postId: string, content: string) => {
-    await handleAPI('/comments', {
+    const res = await handleAPI('/comments', {
       method: 'POST',
       body: JSON.stringify({
         content,
@@ -75,33 +65,60 @@ function Discussion({ isOrganizer }: Props) {
         userId,
       }),
     });
-    setReplyInputs(prev => ({
-      ...prev,
-      [postId]: '',
-    }));
-    window.location.reload();
+
+    if (res.ok) {
+      const newComment = await res.json();
+      setPosts(prev =>
+        prev.map(post =>
+          post.id === postId
+            ? {
+                ...post,
+                comments: [
+                  ...post.comments,
+                  {
+                    ...newComment.data,
+                    user: user, // fallback
+                  },
+                ],
+              }
+            : post,
+        ),
+      );
+      setReplyInputs(prev => ({ ...prev, [postId]: '' }));
+      setShowReplyBox(prev => ({ ...prev, [postId]: false }));
+    }
   };
 
   const handleDeleteReply = async (replyId: string) => {
-    await handleAPI(`/comments/${replyId}`, {
+    const res = await handleAPI(`/comments/${replyId}`, {
       method: 'DELETE',
     });
-    window.location.reload();
+
+    if (res.ok) {
+      setPosts(prev =>
+        prev.map(post => ({
+          ...post,
+          comments: post.comments.filter(c => c.id !== replyId),
+        })),
+      );
+    }
   };
 
   const handleDeletePost = async (postId: string) => {
-    await handleAPI(`/posts/${postId}`, {
+    const res = await handleAPI(`/posts/${postId}`, {
       method: 'DELETE',
     });
-    window.location.reload();
+
+    if (res.ok) {
+      setPosts(prev => prev.filter(post => post.id !== postId));
+    }
   };
 
   return (
     <div className="space-y-6">
-      <h2 className="text-xl font-semibold ">Event Forum</h2>
+      <h2 className="text-xl font-semibold">Event Forum</h2>
 
       {/* Create New Thread */}
-
       <div className="space-y-2 border p-4 rounded-md bg-white">
         <h3 className="font-medium">Start a Discussion</h3>
         <input
@@ -140,9 +157,8 @@ function Discussion({ isOrganizer }: Props) {
                 {post.content}
               </p>
               <div className="text-sm text-gray-500">
-                Posted by {post.author.name} • {post.created_at}
+                Posted by {post.author?.name || 'Unknown'} • {post.created_at}
               </div>
-
               {(post.user_id === userId || isOrganizer) && (
                 <button
                   onClick={() => handleDeletePost(post.id)}
@@ -176,7 +192,8 @@ function Discussion({ isOrganizer }: Props) {
                       <div key={comment.id}>
                         <p className="text-gray-800">{comment.content}</p>
                         <div className="text-xs text-gray-500">
-                          Reply by {comment.user.name} • {comment.created_at}
+                          Reply by {comment.user?.name || 'Unknown'} •{' '}
+                          {comment.created_at}
                         </div>
                         {(comment.user_id === userId || isOrganizer) && (
                           <button
@@ -193,6 +210,7 @@ function Discussion({ isOrganizer }: Props) {
               </div>
             )}
 
+            {/* Reply Box */}
             <div className="mt-2">
               <button
                 onClick={() =>

@@ -1,38 +1,35 @@
-// pages/Invitations.tsx
-
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import InvitationPagination from '../components/pages/invitations/InvitationPagination';
 import useUser from '../hooks/redux/useUser';
 import { useFetch } from '../hooks/useFetch';
 import { Invitation } from '../types';
 import { handleAPI } from '../handlers/api-handler';
-
-/** Format ISO date string to DD/MM/YYYY */
-function formatDate(isoString: string) {
-  const d = new Date(isoString);
-  const day = d.getDate().toString().padStart(2, '0');
-  const month = (d.getMonth() + 1).toString().padStart(2, '0');
-  const year = d.getFullYear();
-  return `${day}/${month}/${year}`;
-}
+import { formatDate } from '../libs/utils';
 
 export default function Invitations() {
   const user = useUser();
   const userId = user.id;
   const [currentPage, setCurrentPage] = useState(1);
+  const [invitationsData, setInvitationsData] = useState<Invitation[]>([]);
 
   const { data, isLoading } = useFetch(`/invitations/user/${userId}`, {
     method: 'GET',
   });
 
+  useEffect(() => {
+    if (data?.data) {
+      setInvitationsData(data.data);
+    }
+  }, [data]);
+
   if (isLoading) {
     return <div className="p-5">Loading...</div>;
   }
+
   if (!data) {
     return <div className="p-5">No invitations found.</div>;
   }
 
-  const invitationsData = data.data as Invitation[];
   const invitationsPerPage = 3;
   const totalPages = Math.ceil(invitationsData.length / invitationsPerPage);
   const start = (currentPage - 1) * invitationsPerPage;
@@ -42,8 +39,22 @@ export default function Invitations() {
   );
 
   const handleResponse = async (id: string, action: 'accept' | 'reject') => {
-    await handleAPI(`/invitations/${id}/${action}`, { method: 'PUT' });
-    window.location.reload();
+    const res = await handleAPI(`/invitations/${id}/${action}`, {
+      method: 'PUT',
+    });
+
+    if (res.ok) {
+      setInvitationsData(prev =>
+        prev.map(invite =>
+          invite.id === id
+            ? {
+                ...invite,
+                status: action === 'accept' ? 'accepted' : 'rejected',
+              }
+            : invite,
+        ),
+      );
+    }
   };
 
   return (

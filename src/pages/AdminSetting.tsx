@@ -24,6 +24,8 @@ export default function AdminSetting() {
   });
   const [dirty, setDirty] = useState(false);
 
+  const [search, setSearch] = useState('');
+
   // Users state
   const [users, setUsers] = useState<User[]>([]);
   const [editUserId, setEditUserId] = useState<string | null>(null);
@@ -41,6 +43,15 @@ export default function AdminSetting() {
   const allEvents: Event[] = eventData?.data || [];
   const publicEvents = allEvents.filter(e => e.is_public);
   const privateEvents = allEvents.filter(e => !e.is_public);
+  const now = new Date();
+
+  const pastEvents = allEvents.filter(e => new Date(e.end_time) < now);
+
+  const currentEvents = allEvents.filter(
+    e => new Date(e.start_time) <= now && new Date(e.end_time) >= now,
+  );
+
+  const upcomingEvents = allEvents.filter(e => new Date(e.start_time) > now);
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -66,10 +77,9 @@ export default function AdminSetting() {
   }, [currentPage]);
 
   const totalPages = Math.ceil(users.length / pageSize);
-  const paginatedUsers = users.slice(
-    (currentPage - 1) * pageSize,
-    currentPage * pageSize,
-  );
+  const paginatedUsers = users
+    .filter(u => u.name.toLowerCase().includes(search.toLowerCase()))
+    .slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   const clamp = (p: number) => Math.min(Math.max(1, p), totalPages);
 
@@ -147,6 +157,21 @@ export default function AdminSetting() {
     setDirty(false);
   };
 
+  const eventsMap = [
+    {
+      title: 'Past Events',
+      events: pastEvents,
+    },
+    {
+      title: 'Current Events',
+      events: currentEvents,
+    },
+    {
+      title: 'Upcoming Events',
+      events: upcomingEvents,
+    },
+  ];
+
   return (
     <div className="space-y-8 mt-4 p-4">
       {/* Statistics */}
@@ -160,6 +185,15 @@ export default function AdminSetting() {
           <div key={label} className="p-4 bg-gray-100 rounded-lg text-center">
             <h3 className="text-sm font-medium text-gray-600">{label}</h3>
             <p className="mt-2 text-2xl font-bold">{value}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-3  gap-6">
+        {eventsMap.map(({ title, events }) => (
+          <div key={title} className="p-4 bg-gray-100 rounded-lg text-center">
+            <h3 className="text-sm font-medium text-gray-600">{title}</h3>
+            <p className="mt-2 text-2xl font-bold">{events.length}</p>
           </div>
         ))}
       </div>
@@ -210,7 +244,20 @@ export default function AdminSetting() {
 
       {/* User Management */}
       <div className="p-6 bg-white rounded-lg shadow-md space-y-4">
-        <h1 className="text-2xl font-bold">User Management</h1>
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-bold">User Management</h1>
+          <input
+            type="text"
+            placeholder="Search by name..."
+            value={search}
+            onChange={e => {
+              setSearch(e.target.value);
+              setCurrentPage(1);
+            }}
+            className="border border-primary rounded-md p-2 w-full sm:w-64 outline-none"
+          />
+        </div>
+
         <div className="overflow-x-auto">
           <table className="w-full min-w-[640px] table-auto border border-gray-200 text-sm rounded-md">
             <thead className="bg-gray-100">

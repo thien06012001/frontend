@@ -17,7 +17,7 @@ export default function Invitations() {
   const { data: invitationsData } = useFetch(`/events/${id}/invitations`, {
     method: 'GET',
   });
-  console.log('invitationsData', invitationsData);
+
   const [invitations, setInvitations] = useState<Invitation[]>([]);
 
   useEffect(() => {
@@ -32,7 +32,6 @@ export default function Invitations() {
   const [inputPage, setInputPage] = useState(1);
   const pageSize = 10;
 
-  // filter by email
   const filtered = useMemo(
     () =>
       invitations.filter(inv =>
@@ -49,18 +48,27 @@ export default function Invitations() {
 
   const handleSend = async () => {
     if (!emailInput.trim()) return;
-    await handleAPI(`/events/${id}/invitations`, {
+
+    const res = await handleAPI(`/events/${id}/invitations`, {
       method: 'POST',
       body: JSON.stringify({ email: emailInput.trim() }),
     });
-    setEmailInput('');
-    setCurrentPage(1);
-    setInputPage(1);
+
+    if (res.ok) {
+      const newInvitation = await res.json();
+      setInvitations(prev => [newInvitation.data, ...prev]);
+      setEmailInput('');
+      setCurrentPage(1);
+      setInputPage(1);
+    }
   };
 
   const handleRemove = async (invId: string) => {
-    await handleAPI(`/invitations/${invId}`, { method: 'DELETE' });
-    window.location.reload();
+    const res = await handleAPI(`/invitations/${invId}`, { method: 'DELETE' });
+
+    if (res.ok) {
+      setInvitations(prev => prev.filter(inv => inv.id !== invId));
+    }
   };
 
   const handlePageChange = (page: number) => {
@@ -70,7 +78,7 @@ export default function Invitations() {
   };
 
   return (
-    <div className="space-y-6  sm:px-0">
+    <div className="space-y-6 sm:px-0">
       {/* Title & Count */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <h2 className="text-xl font-semibold">Invitations</h2>
@@ -78,6 +86,8 @@ export default function Invitations() {
           Total invitations sent: {invitations.length}
         </p>
       </div>
+
+      {/* Search & Send */}
       <div className="flex flex-wrap-reverse gap-4 justify-between">
         {/* Search */}
         <input

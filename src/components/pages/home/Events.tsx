@@ -1,15 +1,24 @@
-// components/Events.tsx
-
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router';
 import { handleAPI } from '../../../handlers/api-handler';
 import { Event } from '../../../types';
 import useUser from '../../../hooks/redux/useUser';
+import { formatDate } from '../../../libs/utils';
 
 function Events() {
   const [events, setEvents] = useState<Event[]>([]);
   const user = useUser();
   const userId = user.id;
+
+  // Get initial page from query string
+  const getInitialPage = () => {
+    const params = new URLSearchParams(window.location.search);
+    const page = parseInt(params.get('page') || '1', 10);
+    return isNaN(page) || page < 1 ? 1 : page;
+  };
+
+  const [currentPage, setCurrentPage] = useState(getInitialPage);
+  const [inputPage, setInputPage] = useState(getInitialPage);
+  const eventsPerPage = 3;
 
   useEffect(() => {
     const fetchEvents = async () => {
@@ -20,15 +29,14 @@ function Events() {
     fetchEvents();
   }, []);
 
-  // --- Pagination state & helpers ---
-  const [currentPage, setCurrentPage] = useState(1);
-  const [inputPage, setInputPage] = useState(1);
-  const eventsPerPage = 3;
   const totalPages = Math.ceil(events.length / eventsPerPage);
 
-  // keep inputPage in sync if currentPage changes externally
   useEffect(() => {
     setInputPage(currentPage);
+    const params = new URLSearchParams(window.location.search);
+    params.set('page', currentPage.toString());
+    const newUrl = `${window.location.pathname}?${params.toString()}`;
+    window.history.pushState({}, '', newUrl);
   }, [currentPage]);
 
   const changePage = (p: number) => {
@@ -42,24 +50,57 @@ function Events() {
   );
 
   const handleRequestAction = async (eventId: string, action: string) => {
-    if (action === 'cancel') {
-      await handleAPI(`/requests?userId=${userId}&eventId=${eventId}`, {
-        method: 'DELETE',
-      });
+    const success = await (async () => {
+      if (action === 'cancel') {
+        const res = await handleAPI(
+          `/requests?userId=${userId}&eventId=${eventId}`,
+          { method: 'DELETE' },
+        );
+        return res.ok;
+      }
+      if (action === 'request') {
+        const res = await handleAPI(`/requests`, {
+          method: 'POST',
+          body: JSON.stringify({ eventId, userId }),
+        });
+        return res.ok;
+      }
+      if (action === 'leave') {
+        const res = await handleAPI(`/events/${eventId}/leave`, {
+          method: 'POST',
+          body: JSON.stringify({ userId }),
+        });
+        return res.ok;
+      }
+      return false;
+    })();
+
+    if (success) {
+      setEvents(prev =>
+        prev.map(event => {
+          if (event.id !== eventId) return event;
+
+          const updatedEvent = { ...event };
+
+          if (action === 'cancel') {
+            updatedEvent.requests = updatedEvent.requests.filter(
+              r => r.user_id !== userId,
+            );
+          } else if (action === 'request') {
+            updatedEvent.requests = [
+              ...updatedEvent.requests,
+              { user_id: userId, status: 'pending' },
+            ];
+          } else if (action === 'leave') {
+            updatedEvent.participants = updatedEvent.participants.filter(
+              p => p.id !== userId,
+            );
+          }
+
+          return updatedEvent;
+        }),
+      );
     }
-    if (action === 'request') {
-      await handleAPI(`/requests`, {
-        method: 'POST',
-        body: JSON.stringify({ eventId, userId }),
-      });
-    }
-    if (action === 'leave') {
-      await handleAPI(`/events/${eventId}/leave`, {
-        method: 'POST',
-        body: JSON.stringify({ userId }),
-      });
-    }
-    window.location.reload();
   };
 
   return (
@@ -91,14 +132,9 @@ function Events() {
               className="flex flex-col md:flex-row md:justify-between md:items-center border border-gray-200 rounded-md p-4 space-y-4 md:space-y-0"
             >
               <div className="flex-1 space-y-2">
-                <Link
-                  to={`/event/${event.id}`}
-                  className="block text-lg font-medium"
-                >
-                  {event.name}
-                </Link>
+                <p className="block text-lg font-medium">{event.name}</p>
                 <p className="text-sm text-gray-500">
-                  {event.start_time} – {event.end_time}
+                  {formatDate(event.start_time)} – {formatDate(event.end_time)}
                 </p>
                 <div className="flex flex-wrap items-center text-sm text-gray-600 space-x-4">
                   <span className="flex items-center space-x-1">
@@ -143,7 +179,7 @@ function Events() {
         <button
           onClick={() => changePage(currentPage - 1)}
           disabled={currentPage === 1}
-          className="px-3 py-1 border border-primary hover:bg-primary hover:text-primary-foreground cursor-pointer rounded disabled:opacity-50"
+          className="px-3 py-1 border border-primary hover:bg-primary hover:text-white rounded disabled:opacity-50"
         >
           Prev
         </button>
@@ -167,7 +203,7 @@ function Events() {
         <button
           onClick={() => changePage(currentPage + 1)}
           disabled={currentPage === totalPages}
-          className="px-3 py-1 border border-primary hover:bg-primary hover:text-primary-foreground rounded disabled:opacity-50 cursor-pointer"
+          className="px-3 py-1 border border-primary hover:bg-primary hover:text-white rounded disabled:opacity-50"
         >
           Next
         </button>

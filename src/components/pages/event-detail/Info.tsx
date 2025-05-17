@@ -79,9 +79,10 @@ function Info({ event, isOrganizer }: Props) {
       setIsSubmitting(true);
       setErrorMessage('');
 
-      // Prepare data for update
+      // Prepare updated data
       const updateData = { ...form };
       let url = form.image_url;
+
       if (imageFile) {
         const uploadRes = await fetch('http://localhost:5000/image-upload', {
           method: 'POST',
@@ -89,12 +90,10 @@ function Info({ event, isOrganizer }: Props) {
         });
 
         if (!uploadRes.ok) {
-          console.error('Failed to upload image');
-          return;
+          throw new Error('Failed to upload image');
         }
 
         const uploadData = await uploadRes.json();
-
         url = uploadData.url;
       }
 
@@ -112,11 +111,12 @@ function Info({ event, isOrganizer }: Props) {
         throw new Error(errorData.message || 'Failed to update event');
       }
 
-      // Update was successful
+      // If update successful, update form state with new data
+      setForm(prev => ({
+        ...prev,
+        image_url: url,
+      }));
       setIsEditing(false);
-
-      // Refresh the page to show updated data
-      window.location.reload();
     } catch (error) {
       console.error('Error updating event:', error);
       setErrorMessage(

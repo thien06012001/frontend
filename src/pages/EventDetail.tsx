@@ -1,5 +1,5 @@
-import React, { useMemo, useState, useEffect } from 'react';
-import { useParams, Link, useSearchParams } from 'react-router';
+import { useMemo, useState, useEffect } from 'react';
+import { useParams, Link, useSearchParams, Navigate } from 'react-router';
 import Info from '../components/pages/event-detail/Info';
 import JoinedMembers from '../components/pages/event-detail/JoinedMembers';
 import Requests from '../components/pages/event-detail/Requests';
@@ -27,15 +27,14 @@ function EventDetail() {
   });
 
   const event = data?.data as Event;
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const user = useUser();
-
   const currentUserId = user?.id || 'user-123'; // replace with real user ID
   const isOrganizer =
     (!!event && event.owner_id === currentUserId) || user?.role === 'admin';
 
   // 2. Hooks in fixed order
-  const [searchParams, setSearchParams] = useSearchParams();
 
   const allowedTabs = useMemo<OrganizerView[]>(
     () =>
@@ -70,6 +69,15 @@ function EventDetail() {
 
   if (!event) {
     return <div>Event not found</div>;
+  }
+
+  const isParticipant =
+    event?.participants?.some(
+      participant => participant.id === currentUserId,
+    ) || event?.owner_id === currentUserId;
+
+  if (!isParticipant) {
+    return <Navigate to="/" />;
   }
 
   // 4. Handlers and render logic

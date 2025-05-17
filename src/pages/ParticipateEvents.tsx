@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import EventFilter from '../components/pages/participate-event/EventFilter';
 import EventTable from '../components/pages/participate-event/EventTable';
 import Pagination from '../components/pages/participate-event/Pagination';
@@ -20,13 +20,28 @@ function ParticipateEvents() {
   const [filterType, setFilterType] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
   const [sortAsc, setSortAsc] = useState(true);
-  const [currentPage, setCurrentPage] = useState(1);
 
   const eventsPerPage = 3;
 
+  // Get initial page from URL
+  const getInitialPage = () => {
+    const params = new URLSearchParams(window.location.search);
+    const page = parseInt(params.get('page') || '1', 10);
+    return isNaN(page) || page < 1 ? 1 : page;
+  };
+
+  const [currentPage, setCurrentPage] = useState(getInitialPage);
+
+  // Sync page with URL when currentPage changes
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    params.set('page', currentPage.toString());
+    const newUrl = `${window.location.pathname}?${params.toString()}`;
+    window.history.pushState({}, '', newUrl);
+  }, [currentPage]);
+
   const handleSortByDate = () => setSortAsc(prev => !prev);
 
-  // ✅ Combine filter + search + sort
   const filteredEvents = useMemo(() => {
     let events = [...participatingEvents];
 
@@ -36,14 +51,12 @@ function ParticipateEvents() {
       events = events.filter(e => !e.is_public);
     }
 
-    // Search by name
     if (searchTerm.trim()) {
       events = events.filter(e =>
         e.name.toLowerCase().includes(searchTerm.toLowerCase()),
       );
     }
 
-    // Sort by start date
     events.sort((a, b) => {
       const dateA = new Date(a.start_time).getTime();
       const dateB = new Date(b.start_time).getTime();
