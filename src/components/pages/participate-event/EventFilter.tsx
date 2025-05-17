@@ -1,12 +1,10 @@
-// components/EventFilter.tsx
+// src/components/pages/participate-event/EventFilter.tsx
 // ------------------------------------------
 // EventFilter Component
 // - Provides UI controls to filter events by type and search by name.
 // - Exposes current filter and search values via controlled props.
 // - Notifies parent component of changes through callback props.
 // ------------------------------------------
-
-import React from 'react';
 
 interface EventFilterProps {
   /** Currently selected filter type ("All", "Public", "Private") */
