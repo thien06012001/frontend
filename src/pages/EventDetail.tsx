@@ -107,7 +107,7 @@ function EventDetail() {
       case 'info':
         return <Info event={event} isOrganizer={isOrganizer} />;
       case 'discussions':
-        return <Discussion posts={event.posts} isOrganizer={isOrganizer} />;
+        return <Discussion isOrganizer={isOrganizer} />;
       case 'members':
         return isOrganizer ? (
           <JoinedMembers participants={participants} />
