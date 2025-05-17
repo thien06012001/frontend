@@ -81,17 +81,6 @@ export default function AdminSetting() {
     .filter(u => u.name.toLowerCase().includes(search.toLowerCase()))
     .slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
-  const clamp = (p: number) => Math.min(Math.max(1, p), totalPages);
-
-  const handlePageKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      setCurrentPage(clamp(inputPage));
-    }
-  };
-  const handlePageBlur = () => {
-    setCurrentPage(clamp(inputPage));
-  };
-
   const handlePageChange = (page: number) => {
     if (page < 1 || page > totalPages) return;
     setCurrentPage(page);
@@ -270,9 +259,7 @@ export default function AdminSetting() {
                 <th className="hidden md:table-cell px-3 py-2 text-left">
                   Phone
                 </th>
-                <th className="hidden lg:table-cell px-3 py-2 text-left">
-                  Role
-                </th>
+
                 <th className="hidden sm:table-cell px-3 py-2 text-left">
                   Joined At
                 </th>
@@ -334,7 +321,6 @@ export default function AdminSetting() {
                       u.phone
                     )}
                   </td>
-                  <td className="hidden lg:table-cell px-3 py-2">{u.role}</td>
                   <td className="hidden sm:table-cell px-3 py-2 whitespace-nowrap">
                     {formatDate((u as any).created_at)}
                   </td>
@@ -375,17 +361,11 @@ export default function AdminSetting() {
             Prev
           </button>
           <div className="flex items-center gap-2">
-            <input
-              type="number"
-              min={1}
-              max={totalPages}
-              value={inputPage}
-              onChange={e => setInputPage(Number(e.target.value))}
-              onKeyDown={handlePageKeyDown}
-              onBlur={handlePageBlur}
-              className="w-12 text-center border border-gray-300 rounded-md py-1 outline-none"
-            />
-            <span className="text-sm text-gray-600">/ {totalPages}</span>
+            <div className="w-12 text-center border border-gray-300 rounded-md py-1 outline-none">
+              <span className="text-sm text-gray-600">
+                {inputPage}/ {totalPages}
+              </span>
+            </div>
           </div>
           <button
             onClick={() => handlePageChange(currentPage + 1)}

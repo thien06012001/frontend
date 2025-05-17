@@ -17,7 +17,7 @@ export default function Invitations() {
   });
 
   useEffect(() => {
-    if (data?.data) {
+    if (data) {
       setInvitationsData(data.data);
     }
   }, [data]);

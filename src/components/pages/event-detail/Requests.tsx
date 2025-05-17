@@ -14,16 +14,15 @@ function formatDate(isoString: string) {
 
 export default function Requests() {
   const { id } = useParams();
-
   const { data: requestData } = useFetch(`/events/${id}/requests`, {
     method: 'GET',
   });
 
+  const [requests, setRequests] = useState<Request[]>([]);
   const [search, setSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [inputPage, setInputPage] = useState(1);
   const pageSize = 10;
-  const [requests, setRequests] = useState<Request[]>(requestData?.data || []);
 
   useEffect(() => {
     if (requestData) {
@@ -51,14 +50,22 @@ export default function Requests() {
     setInputPage(page);
   };
 
+  const removeRequest = (requestId: string) => {
+    setRequests(prev => prev.filter(r => r.id !== requestId));
+  };
+
   const handleApprove = async (requestId: string) => {
-    await handleAPI(`/requests/${requestId}/approve`, { method: 'POST' });
-    window.location.reload();
+    const res = await handleAPI(`/requests/${requestId}/approve`, {
+      method: 'POST',
+    });
+    if (res.ok) removeRequest(requestId);
   };
 
   const handleReject = async (requestId: string) => {
-    await handleAPI(`/requests/${requestId}/reject`, { method: 'POST' });
-    window.location.reload();
+    const res = await handleAPI(`/requests/${requestId}/reject`, {
+      method: 'POST',
+    });
+    if (res.ok) removeRequest(requestId);
   };
 
   return (
@@ -116,6 +123,13 @@ export default function Requests() {
                 </td>
               </tr>
             ))}
+            {paginated.length === 0 && (
+              <tr>
+                <td colSpan={6} className="px-3 py-4 text-center text-gray-500">
+                  No requests found.
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>

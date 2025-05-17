@@ -8,30 +8,36 @@ type Props = {
 };
 
 function JoinedMembers({ participants }: Props) {
+  const { id } = useParams();
   const [search, setSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [memberList, setMemberList] = useState(participants);
   const pageSize = 10;
 
-  const totalPages = Math.ceil(participants.length / pageSize);
-  const paginated = participants
-    .filter(participant =>
-      participant.name.toLowerCase().includes(search.toLowerCase()),
-    )
-    .slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  const filtered = memberList.filter(participant =>
+    participant.name.toLowerCase().includes(search.toLowerCase()),
+  );
+
+  const totalPages = Math.ceil(filtered.length / pageSize);
+  const paginated = filtered.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize,
+  );
 
   const handlePageChange = (page: number) => {
     if (page < 1 || page > totalPages) return;
     setCurrentPage(page);
   };
 
-  const { id } = useParams();
-
   const handleKick = async (userId: string) => {
-    await handleAPI(`/events/${id}/kick`, {
+    const res = await handleAPI(`/events/${id}/kick`, {
       method: 'POST',
       body: JSON.stringify({ userId }),
     });
-    window.location.reload();
+
+    if (res.ok) {
+      setMemberList(prev => prev.filter(u => u.id !== userId));
+    }
   };
 
   return (
@@ -80,10 +86,18 @@ function JoinedMembers({ participants }: Props) {
                 </td>
               </tr>
             ))}
+            {paginated.length === 0 && (
+              <tr>
+                <td colSpan={5} className="text-center px-3 py-4 text-gray-500">
+                  No participants found.
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
 
+      {/* Pagination */}
       <div className="flex items-center justify-center gap-3 pt-4">
         <button
           onClick={() => handlePageChange(currentPage - 1)}

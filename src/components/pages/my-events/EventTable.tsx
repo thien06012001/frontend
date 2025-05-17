@@ -27,6 +27,13 @@ function EventTable({
         </tr>
       </thead>
       <tbody>
+        {events.length === 0 && (
+          <tr>
+            <td colSpan={4} className="px-4 py-6 text-center text-gray-500">
+              No events on this page.
+            </td>
+          </tr>
+        )}
         {events.map(event => (
           <tr key={event.id} className="border-t border-gray-200">
             <td className="px-4 py-2 truncate">
