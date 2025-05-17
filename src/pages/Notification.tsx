@@ -1,4 +1,4 @@
-// components/NotificationPage.tsx
+//src/pages/NotificationPage.tsx
 
 import { useFetch } from '../hooks/useFetch';
 import useUser from '../hooks/redux/useUser';

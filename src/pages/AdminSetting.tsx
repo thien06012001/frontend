@@ -1,68 +1,75 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// components/AdminSetting.tsx
+// src/pages/AdminSetting.tsx
 
 import { useState, useEffect, useMemo } from 'react';
-import Button from '../components/ui/Button';
 import { useFetch } from '../hooks/useFetch';
 import { Event, User } from '../types';
 import { handleAPI } from '../handlers/api-handler';
 
-/** Format ISO date string to DD/MM/YYYY */
+// Reusable UI components
+import StatsGrid from '../components/pages/admin/StatsGrid';
+import EventsSummary from '../components/pages/admin/EventsSummary';
+import SettingsForm, {
+  AdminSettings,
+} from '../components/pages/admin/SettingsForm';
+import UserTable from '../components/pages/admin/UserTable';
+import PaginationInput from '../components/pages/admin/PaginationInput';
+
+/**
+ * Format an ISO date string into DD/MM/YYYY
+ */
 function formatDate(isoString: string) {
   const d = new Date(isoString);
   const day = d.getDate().toString().padStart(2, '0');
   const month = (d.getMonth() + 1).toString().padStart(2, '0');
-  const year = d.getFullYear();
-  return `${day}/${month}/${year}`;
+  return `${day}/${month}/${d.getFullYear()}`;
 }
 
 export default function AdminSetting() {
-  // Settings state
-  const [settings, setSettings] = useState({
+  // — Settings state: current values & whether they've been modified
+  const [settings, setSettings] = useState<AdminSettings>({
     maxActiveEvents: 5,
     maxEventCapacity: 100,
   });
   const [dirty, setDirty] = useState(false);
 
+  // — Search term for filtering users & the user list itself
   const [search, setSearch] = useState('');
+  const [users, setUsers] = useState<(User & { created_at: string })[]>([]);
 
-  // Users state
-  const [users, setUsers] = useState<User[]>([]);
+  // — Which user is being edited, and the temporary form values
   const [editUserId, setEditUserId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Partial<User>>({});
 
+  // — Fetch raw data from server
   const { data: userData } = useFetch('/admin/users/all', { method: 'GET' });
   const { data: eventData } = useFetch('/admin/events/all', { method: 'GET' });
   const { data: settingsData } = useFetch('/settings', { method: 'GET' });
 
-  const allUsers: (User & { created_at: string })[] = useMemo(
-    () => userData?.data || [],
+  // Memoize lists to avoid unnecessary recalculations
+  const allUsers = useMemo(
+    () => (userData?.data as (User & { created_at: string })[]) || [],
     [userData],
   );
+  const allEvents = (eventData?.data as Event[]) || [];
 
-  const allEvents: Event[] = eventData?.data || [];
-  const publicEvents = allEvents.filter(e => e.is_public);
-  const privateEvents = allEvents.filter(e => !e.is_public);
+  // — Categorize events by date
   const now = new Date();
-
   const pastEvents = allEvents.filter(e => new Date(e.end_time) < now);
-
   const currentEvents = allEvents.filter(
     e => new Date(e.start_time) <= now && new Date(e.end_time) >= now,
   );
-
   const upcomingEvents = allEvents.filter(e => new Date(e.start_time) > now);
 
-  // Pagination state
+  // — Pagination state for the user table
   const [currentPage, setCurrentPage] = useState(1);
-  const [inputPage, setInputPage] = useState(1);
   const pageSize = 10;
 
+  // Populate users & initial settings once fetches complete
   useEffect(() => {
     if (allUsers.length) {
       setUsers(allUsers);
     }
-
     if (settingsData) {
       setSettings({
         maxActiveEvents: settingsData.setting.maxActiveEvents,
@@ -71,34 +78,56 @@ export default function AdminSetting() {
     }
   }, [allUsers, settingsData]);
 
-  // Keep inputPage synced to currentPage
+  // Reset to first page whenever the search term changes
   useEffect(() => {
-    setInputPage(currentPage);
-  }, [currentPage]);
+    setCurrentPage(1);
+  }, [search]);
 
-  const totalPages = Math.ceil(users.length / pageSize);
-  const paginatedUsers = users
-    .filter(u => u.name.toLowerCase().includes(search.toLowerCase()))
-    .slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  // Filter & slice users for current page
+  const filteredUsers = users.filter(u =>
+    u.name.toLowerCase().includes(search.toLowerCase()),
+  );
+  const totalPages = Math.ceil(filteredUsers.length / pageSize);
+  const paginatedUsers = filteredUsers.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize,
+  );
 
+  // — Handlers
+
+  /**
+   * Move to a different page in the user table.
+   */
   const handlePageChange = (page: number) => {
     if (page < 1 || page > totalPages) return;
     setCurrentPage(page);
   };
 
-  const handleSettingChange = (field: keyof typeof settings, value: number) => {
+  /**
+   * Update a field in the settings form and mark dirty.
+   */
+  const handleSettingChange = (field: keyof AdminSettings, value: number) => {
     setSettings(prev => ({ ...prev, [field]: value }));
     setDirty(true);
   };
 
-  const startEditUser = (u: User) => {
+  /**
+   * Begin editing a user: populate edit form with their values.
+   */
+  const startEditUser = (u: User & { created_at: string }) => {
     setEditUserId(u.id);
     setEditForm({ name: u.name, email: u.email, phone: u.phone });
   };
+
+  /** Cancel in-progress user edit. */
   const cancelEditUser = () => {
     setEditUserId(null);
     setEditForm({});
   };
+
+  /**
+   * Submit edited user data to the server and update local state.
+   */
   const editUser = async (userId: string, body: Partial<User>) => {
     const res = await handleAPI(`/admin/users/${userId}`, {
       method: 'PUT',
@@ -116,6 +145,9 @@ export default function AdminSetting() {
     cancelEditUser();
   };
 
+  /**
+   * Save modified settings to the server.
+   */
   const updateSettings = async () => {
     const res = await handleAPI('/settings', {
       method: 'PUT',
@@ -126,255 +158,91 @@ export default function AdminSetting() {
     setDirty(false);
   };
 
+  /**
+   * Reset settings to defaults both locally and on the server.
+   */
   const handleReset = async () => {
-    const newSetting = {
-      maxActiveEvents: 5,
-      maxEventCapacity: 50,
-    };
+    const newSetting = { maxActiveEvents: 5, maxEventCapacity: 50 };
     const res = await handleAPI('/settings', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        maxActiveEvents: 5,
-        maxEventCapacity: 50,
-      }),
+      body: JSON.stringify(newSetting),
     });
-
     if (!res.ok) throw new Error('Failed to reset settings');
-
     setSettings(newSetting);
     setDirty(false);
   };
 
-  const eventsMap = [
+  // — Prepare data arrays for the StatsGrid & EventsSummary components
+  const statsItems = [
+    { label: 'Total Users', value: allUsers.length },
+    { label: 'Total Events', value: allEvents.length },
     {
-      title: 'Past Events',
-      events: pastEvents,
+      label: 'Public Events',
+      value: allEvents.filter(e => e.is_public).length,
     },
     {
-      title: 'Current Events',
-      events: currentEvents,
+      label: 'Private Events',
+      value: allEvents.filter(e => !e.is_public).length,
     },
-    {
-      title: 'Upcoming Events',
-      events: upcomingEvents,
-    },
+  ];
+  const eventSummaries = [
+    { title: 'Past Events', count: pastEvents.length },
+    { title: 'Current Events', count: currentEvents.length },
+    { title: 'Upcoming Events', count: upcomingEvents.length },
   ];
 
   return (
     <div className="space-y-8 mt-4 p-4">
-      {/* Statistics */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {[
-          { label: 'Total Users', value: allUsers.length },
-          { label: 'Total Events', value: allEvents.length },
-          { label: 'Public Events', value: publicEvents.length },
-          { label: 'Private Events', value: privateEvents.length },
-        ].map(({ label, value }) => (
-          <div key={label} className="p-4 bg-gray-100 rounded-lg text-center">
-            <h3 className="text-sm font-medium text-gray-600">{label}</h3>
-            <p className="mt-2 text-2xl font-bold">{value}</p>
-          </div>
-        ))}
-      </div>
+      {/* Top-level statistics */}
+      <StatsGrid items={statsItems} />
 
-      <div className="grid grid-cols-1 sm:grid-cols-3  gap-6">
-        {eventsMap.map(({ title, events }) => (
-          <div key={title} className="p-4 bg-gray-100 rounded-lg text-center">
-            <h3 className="text-sm font-medium text-gray-600">{title}</h3>
-            <p className="mt-2 text-2xl font-bold">{events.length}</p>
-          </div>
-        ))}
-      </div>
+      {/* Past / current / upcoming event counts */}
+      <EventsSummary summaries={eventSummaries} />
 
-      {/* Settings */}
-      <div className="p-6 bg-white rounded-lg shadow-md space-y-6">
-        <h1 className="text-2xl font-bold">Admin Settings</h1>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label className="block font-medium text-gray-700">
-              Max Active Events per User
-            </label>
-            <input
-              type="number"
-              min={1}
-              value={settings.maxActiveEvents}
-              onChange={e =>
-                handleSettingChange('maxActiveEvents', Number(e.target.value))
-              }
-              className="mt-1 w-full border border-gray-300 rounded-md p-2 focus:outline-none"
-            />
-          </div>
+      {/* Settings form panel */}
+      <SettingsForm
+        settings={settings}
+        dirty={dirty}
+        onChange={handleSettingChange}
+        onSave={updateSettings}
+        onReset={handleReset}
+      />
 
-          <div>
-            <label className="block font-medium text-gray-700">
-              Max Event Capacity
-            </label>
-            <input
-              type="number"
-              min={1}
-              value={settings.maxEventCapacity}
-              onChange={e =>
-                handleSettingChange('maxEventCapacity', Number(e.target.value))
-              }
-              className="mt-1 w-full border border-gray-300 rounded-md p-2 focus:outline-none"
-            />
-          </div>
-        </div>
-        <div className="flex space-x-2">
-          <Button onClick={updateSettings} disabled={!dirty}>
-            Save Settings
-          </Button>
-          <Button variant="outline" onClick={handleReset}>
-            Reset
-          </Button>
-        </div>
-      </div>
-
-      {/* User Management */}
+      {/* User Management Section */}
       <div className="p-6 bg-white rounded-lg shadow-md space-y-4">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold">User Management</h1>
+          {/* Search box */}
           <input
             type="text"
             placeholder="Search by name..."
             value={search}
-            onChange={e => {
-              setSearch(e.target.value);
-              setCurrentPage(1);
-            }}
+            onChange={e => setSearch(e.target.value)}
             className="border border-primary rounded-md p-2 w-full sm:w-64 outline-none"
           />
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[640px] table-auto border border-gray-200 text-sm rounded-md">
-            <thead className="bg-gray-100">
-              <tr>
-                <th className="px-3 py-2 text-left">ID</th>
-                <th className="px-3 py-2 text-left">Name</th>
-                <th className="hidden sm:table-cell px-3 py-2 text-left">
-                  Email
-                </th>
-                <th className="hidden md:table-cell px-3 py-2 text-left">
-                  Phone
-                </th>
+        {/* Editable user table */}
+        <UserTable
+          users={paginatedUsers}
+          editUserId={editUserId}
+          editForm={editForm}
+          onStartEdit={startEditUser}
+          onCancelEdit={cancelEditUser}
+          onSaveEdit={editUser}
+          onEditFormChange={(field, value) =>
+            setEditForm(prev => ({ ...prev, [field]: value }))
+          }
+          formatDate={formatDate}
+        />
 
-                <th className="hidden sm:table-cell px-3 py-2 text-left">
-                  Joined At
-                </th>
-                <th className="px-3 py-2 text-left">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {paginatedUsers.map(u => (
-                <tr key={u.id} className="border-t">
-                  <td className="px-3 py-2">{u.id}</td>
-                  <td className="px-3 py-2">
-                    {editUserId === u.id ? (
-                      <input
-                        type="text"
-                        value={editForm.name || ''}
-                        onChange={e =>
-                          setEditForm(prev => ({
-                            ...prev,
-                            name: e.target.value,
-                          }))
-                        }
-                        className="border border-gray-300 rounded-md p-1 w-full"
-                      />
-                    ) : (
-                      u.name
-                    )}
-                  </td>
-                  <td className="hidden sm:table-cell px-3 py-2">
-                    {editUserId === u.id ? (
-                      <input
-                        type="email"
-                        value={editForm.email || ''}
-                        onChange={e =>
-                          setEditForm(prev => ({
-                            ...prev,
-                            email: e.target.value,
-                          }))
-                        }
-                        className="border border-gray-300 rounded-md p-1 w-full"
-                      />
-                    ) : (
-                      u.email
-                    )}
-                  </td>
-                  <td className="hidden md:table-cell px-3 py-2">
-                    {editUserId === u.id ? (
-                      <input
-                        type="tel"
-                        value={editForm.phone || ''}
-                        onChange={e =>
-                          setEditForm(prev => ({
-                            ...prev,
-                            phone: e.target.value,
-                          }))
-                        }
-                        className="border border-gray-300 rounded-md p-1 w-full"
-                      />
-                    ) : (
-                      u.phone
-                    )}
-                  </td>
-                  <td className="hidden sm:table-cell px-3 py-2 whitespace-nowrap">
-                    {formatDate((u as any).created_at)}
-                  </td>
-                  <td className="">
-                    <div className="flex px-3 py-2 space-x-2">
-                      {editUserId === u.id ? (
-                        <>
-                          <Button onClick={() => editUser(u.id, editForm)}>
-                            Save
-                          </Button>
-                          <Button variant="outline" onClick={cancelEditUser}>
-                            Cancel
-                          </Button>
-                        </>
-                      ) : (
-                        <Button
-                          variant="outline"
-                          onClick={() => startEditUser(u)}
-                        >
-                          Edit
-                        </Button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Pagination */}
-        <div className="flex items-center justify-center gap-3 pt-2">
-          <button
-            onClick={() => handlePageChange(currentPage - 1)}
-            disabled={currentPage === 1}
-            className="px-3 py-1 border border-primary rounded disabled:opacity-50 hover:bg-primary hover:text-white"
-          >
-            Prev
-          </button>
-          <div className="flex items-center gap-2">
-            <div className="w-12 text-center border border-gray-300 rounded-md py-1 outline-none">
-              <span className="text-sm text-gray-600">
-                {inputPage}/ {totalPages}
-              </span>
-            </div>
-          </div>
-          <button
-            onClick={() => handlePageChange(currentPage + 1)}
-            disabled={currentPage === totalPages}
-            className="px-3 py-1 border border-primary rounded disabled:opacity-50 hover:bg-primary hover:text-white"
-          >
-            Next
-          </button>
-        </div>
+        {/* Pagination controls */}
+        <PaginationInput
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={handlePageChange}
+        />
       </div>
     </div>
   );
