@@ -110,7 +110,11 @@ function EventDetail() {
         return isOrganizer ? <Invitations /> : null;
       case 'reminders':
         return isOrganizer ? (
-          <Reminder eventStartDate={event.start_time} />
+          <Reminder
+            invitationReminder={event.invitationReminder}
+            participantReminder={event.participantReminder}
+            eventStartDate={event.start_time}
+          />
         ) : null;
       default:
         return null;

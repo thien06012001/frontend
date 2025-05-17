@@ -4,16 +4,19 @@ import { useSelector } from 'react-redux';
 import Sidebar from './Sidebar';
 import Header from './Header';
 import { RootState } from '../../hooks/redux/store';
+import useUser from '../../hooks/redux/useUser';
 
 const Layout = () => {
   const user = useSelector((state: RootState) => state.users.user);
+  const userData = useUser();
   const { pathname } = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Guard #1: auth
   if (!user) return <Navigate to="/login" replace />;
+
   // Guard #2: admin routes
-  if (pathname.startsWith('/admin') && user.role !== 'admin') {
+  if (pathname.startsWith('/admin') && userData.role !== 'admin') {
     return <Navigate to="/" replace />;
   }
 

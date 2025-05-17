@@ -32,7 +32,6 @@ export default function AdminSetting() {
   const { data: userData } = useFetch('/admin/users/all', { method: 'GET' });
   const { data: eventData } = useFetch('/admin/events/all', { method: 'GET' });
   const { data: settingsData } = useFetch('/settings', { method: 'GET' });
-  console.log(settingsData);
 
   const allUsers: (User & { created_at: string })[] = useMemo(
     () => userData?.data || [],

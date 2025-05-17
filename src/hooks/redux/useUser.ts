@@ -17,10 +17,16 @@ const decrypt = (encoded: string): string => {
 export const useUser = () => {
   const user = useSelector((state: RootState) => state.users.user);
 
-  const res = decrypt(user.token);
-  const parsedUser = JSON.parse(res);
+  if (!user || !user.token) return null; // ✅ graceful fallback
 
-  return parsedUser;
+  try {
+    const res = decrypt(user.token);
+    const parsedUser = JSON.parse(res);
+    return parsedUser;
+  } catch (err) {
+    console.error('Failed to decrypt user token:', err);
+    return null;
+  }
 };
 
 export default useUser;

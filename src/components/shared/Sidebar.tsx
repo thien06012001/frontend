@@ -1,8 +1,8 @@
 import { Link, useLocation } from 'react-router';
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch } from 'react-redux';
 import Button from '../ui/Button';
 import { logout } from '../../hooks/redux/slices/user.slice';
-import { RootState } from '../../hooks/redux/store';
+import useUser from '../../hooks/redux/useUser';
 
 interface SidebarProps {
   isMobile?: boolean;
@@ -12,7 +12,7 @@ interface SidebarProps {
 function Sidebar({ isMobile = false, onClose }: SidebarProps) {
   const dispatch = useDispatch();
   const location = useLocation();
-  const user = useSelector((state: RootState) => state.users.user);
+  const user = useUser();
 
   const handleSignOut = () => {
     dispatch(logout());

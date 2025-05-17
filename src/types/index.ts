@@ -13,6 +13,8 @@ export type Event = {
   posts: Post[];
   requests: Request[];
   invitations: Invitation[];
+  invitationReminder: number;
+  participantReminder: number;
 };
 
 export type User = {
