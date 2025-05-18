@@ -1,11 +1,23 @@
 // src/pages/UserInfo.tsx
 
-import { useState, ChangeEvent, FormEvent, useEffect } from 'react';
-import useUser from '../hooks/redux/useUser';
-import { handleAPI } from '../handlers/api-handler';
-import { useToast } from '../hooks/context/ToastContext';
-import { useFetch } from '../hooks/useFetch';
+/**
+ * UserInfo Component
+ *
+ * Allows users to view and update their profile information.
+ * - Displays a form populated with the user's current data.
+ * - Email is displayed as read-only.
+ * - Users can update their name, phone number, and optionally password.
+ */
 
+import { useState, ChangeEvent, FormEvent, useEffect } from 'react'; // React hooks
+import useUser from '../hooks/redux/useUser'; // Hook to get user from Redux
+import { handleAPI } from '../handlers/api-handler'; // API handler utility
+import { useToast } from '../hooks/context/ToastContext'; // Toast notification context
+import { useFetch } from '../hooks/useFetch'; // Data fetching hook
+
+/**
+ * Interface defining the shape of the user info form.
+ */
 interface UserInfoForm {
   email: string;
   name: string;
@@ -14,13 +26,12 @@ interface UserInfoForm {
 }
 
 export default function UserInfo() {
-  const user = useUser();
-  const { showToast } = useToast();
-  const { data } = useFetch(`/users/${user.id}`, {
-    method: 'GET',
-  });
-  console.log(data);
-  // initialize form with values from the Redux user
+  const user = useUser(); // Retrieve current user from Redux store
+  const { showToast } = useToast(); // Function to display toast notifications
+  const { data } = useFetch(`/users/${user.id}`, { method: 'GET' }); // Fetch latest user data
+  console.log(data); // Debug: log fetched data (remove in production)
+
+  // Initialize form state with values from Redux user; phone & password start empty
   const [form, setForm] = useState<UserInfoForm>({
     email: user.email,
     name: user.name,
@@ -28,27 +39,41 @@ export default function UserInfo() {
     password: '',
   });
 
+  // Update form fields when fetched data becomes available
   useEffect(() => {
     if (data) {
       setForm(prev => ({
         ...prev,
-        name: data.data.name,
-        phone: data.data.phone || '',
+        name: data.data.name, // Populate name field
+        phone: data.data.phone || '', // Populate phone or default to empty
       }));
     }
   }, [data]);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const [isSubmitting, setIsSubmitting] = useState(false); // Track submission state
+
+  /**
+   * Handle change for all input fields.
+   * Updates the corresponding field in form state.
+   */
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setForm(prev => ({ ...prev, [name]: value }));
   };
 
+  /**
+   * Handle form submission.
+   * - Prevents default form behavior.
+   * - Shows loading state.
+   * - Constructs payload with mandatory fields and optional password.
+   * - Sends PUT request to update user profile.
+   * - Displays success or error toast.
+   */
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
 
-    // only send name/phone, and password if non-empty
+    // Construct payload: always include name and phone, include password only if provided
     const payload: Partial<UserInfoForm> = {
       name: form.name,
       phone: form.phone,
@@ -63,14 +88,16 @@ export default function UserInfo() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
-      if (!res.ok) throw new Error();
+      if (!res.ok) throw new Error(); // Trigger catch block on failure
+
       showToast('Profile updated successfully', 'success');
-      setForm(prev => ({ ...prev, password: '' }));
-      // TODO: dispatch updated name/phone back into your Redux store
+      setForm(prev => ({ ...prev, password: '' })); // Clear password field after success
+
+      // TODO: Dispatch updated fields to Redux store for global state consistency
     } catch {
       showToast('Failed to update profile', 'error');
     } finally {
-      setIsSubmitting(false);
+      setIsSubmitting(false); // Reset submitting state
     }
   };
 
@@ -90,7 +117,7 @@ export default function UserInfo() {
           />
         </div>
 
-        {/* Name */}
+        {/* Name input */}
         <div>
           <label className="block mb-1 font-medium">Name</label>
           <input
@@ -103,7 +130,7 @@ export default function UserInfo() {
           />
         </div>
 
-        {/* Phone Number */}
+        {/* Phone number input */}
         <div>
           <label className="block mb-1 font-medium">Phone Number</label>
           <input
@@ -115,7 +142,7 @@ export default function UserInfo() {
           />
         </div>
 
-        {/* Password */}
+        {/* Password input */}
         <div>
           <label className="block mb-1 font-medium">
             New Password{' '}
@@ -132,6 +159,7 @@ export default function UserInfo() {
           />
         </div>
 
+        {/* Submit button */}
         <button
           type="submit"
           disabled={isSubmitting}

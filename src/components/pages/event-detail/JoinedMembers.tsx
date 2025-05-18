@@ -1,40 +1,81 @@
-import { useState } from 'react';
-import { User } from '../../../types';
-import { useParams } from 'react-router';
-import { handleAPI } from '../../../handlers/api-handler';
+// src/components/pages/event-detail/JoinedMembers.tsx
 
+import { useState } from 'react';
+import { useParams } from 'react-router'; // Hook to read route parameters
+import { handleAPI } from '../../../handlers/api-handler'; // API helper for kicking users
+import { User } from '../../../types'; // User data type
+
+/**
+ * Props for the JoinedMembers component.
+ *
+ * @property participants - Initial list of users who have joined the event.
+ */
 type Props = {
   participants: User[];
 };
 
+/**
+ * JoinedMembers
+ *
+ * Renders a searchable, paginated table of participants with the ability
+ * for an organizer to "kick" (remove) members from the event.
+ */
 function JoinedMembers({ participants }: Props) {
-  const { id } = useParams();
+  const { id } = useParams<{ id: string }>(); // Extract event ID from the URL
+
+  // Search term for filtering participant names
   const [search, setSearch] = useState('');
+
+  // Current page index (1-based) for pagination
   const [currentPage, setCurrentPage] = useState(1);
-  const [memberList, setMemberList] = useState(participants);
+
+  // Local copy of participants to allow removal without refetch
+  const [memberList, setMemberList] = useState<User[]>(participants);
+
+  // Number of entries to show per page
   const pageSize = 10;
 
+  // Filter participants by name, case-insensitive match
   const filtered = memberList.filter(participant =>
     participant.name.toLowerCase().includes(search.toLowerCase()),
   );
 
+  // Compute total pages based on filtered results
   const totalPages = Math.ceil(filtered.length / pageSize);
+
+  // Extract only the entries for the current page
   const paginated = filtered.slice(
     (currentPage - 1) * pageSize,
     currentPage * pageSize,
   );
 
+  /**
+   * handlePageChange
+   *
+   * Safely update the currentPage, ensuring it stays within valid bounds.
+   *
+   * @param page - Desired page number
+   */
   const handlePageChange = (page: number) => {
     if (page < 1 || page > totalPages) return;
     setCurrentPage(page);
   };
 
+  /**
+   * handleKick
+   *
+   * Sends a POST request to remove a participant from the event,
+   * then updates local state to reflect the change.
+   *
+   * @param userId - ID of the user to remove
+   */
   const handleKick = async (userId: string) => {
     const res = await handleAPI(`/events/${id}/kick`, {
       method: 'POST',
       body: JSON.stringify({ userId }),
     });
 
+    // On successful response, remove the user from the local list
     if (res.ok) {
       setMemberList(prev => prev.filter(u => u.id !== userId));
     }
@@ -42,7 +83,7 @@ function JoinedMembers({ participants }: Props) {
 
   return (
     <div className="space-y-3">
-      {/* Header with search */}
+      {/* Header row with title and search input */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
         <h2 className="text-xl font-semibold">Joined Members</h2>
         <input
@@ -50,14 +91,14 @@ function JoinedMembers({ participants }: Props) {
           placeholder="Search by name..."
           value={search}
           onChange={e => {
-            setSearch(e.target.value);
-            setCurrentPage(1);
+            setSearch(e.target.value); // Update search term
+            setCurrentPage(1); // Reset to first page on new search
           }}
           className="border border-primary rounded-md p-2 w-full sm:w-64 outline-none"
         />
       </div>
 
-      {/* Responsive table wrapper */}
+      {/* Table wrapper for horizontal scroll on small screens */}
       <div className="overflow-x-auto">
         <table className="w-full min-w-[600px] table-auto border border-gray-200 text-sm">
           <thead className="bg-gray-100">
@@ -86,6 +127,7 @@ function JoinedMembers({ participants }: Props) {
                 </td>
               </tr>
             ))}
+            {/* Fallback row when there are no participants */}
             {paginated.length === 0 && (
               <tr>
                 <td colSpan={5} className="text-center px-3 py-4 text-gray-500">
@@ -97,7 +139,7 @@ function JoinedMembers({ participants }: Props) {
         </table>
       </div>
 
-      {/* Pagination */}
+      {/* Pagination controls */}
       <div className="flex items-center justify-center gap-3 pt-4">
         <button
           onClick={() => handlePageChange(currentPage - 1)}
@@ -107,6 +149,7 @@ function JoinedMembers({ participants }: Props) {
           Prev
         </button>
 
+        {/* Direct page input field */}
         <div className="flex items-center space-x-1">
           <input
             type="number"

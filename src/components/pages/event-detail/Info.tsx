@@ -1,37 +1,68 @@
 // src/components/pages/event-detail/Info.tsx
-import { useState, useEffect, useCallback, ChangeEvent } from 'react';
-import { useNavigate } from 'react-router';
-import useUser from '../../../hooks/redux/useUser';
-import Button from '../../ui/Button';
-import { Event, Request } from '../../../types';
-import { handleAPI } from '../../../handlers/api-handler';
 
+import React, { useState, useEffect, useCallback, ChangeEvent } from 'react';
+import { useNavigate } from 'react-router'; // Hook to programmatically navigate
+import useUser from '../../../hooks/redux/useUser'; // Hook to access current user info
+import Button from '../../ui/Button'; // Reusable Button component
+import { Event, Request } from '../../../types'; // Type definitions
+import { handleAPI } from '../../../handlers/api-handler'; // API helper for HTTP requests
+
+/**
+ * Props for the Info component.
+ *
+ * @param event        - The Event object containing all event details.
+ * @param isOrganizer  - Boolean flag indicating if the current user is the event owner.
+ */
 type Props = {
   event: Event;
   isOrganizer: boolean;
 };
 
+/**
+ * Info Component
+ *
+ * Displays detailed information about an event.
+ * - Shows event title, description, dates, capacity, and location.
+ * - Supports in-place editing for organizers, including image upload via drag & drop.
+ * - Allows participants to request/join, cancel, or leave the event.
+ */
 export default function Info({ event, isOrganizer }: Props) {
-  const navigate = useNavigate();
-  const user = useUser();
-  const userId = user.id;
+  const navigate = useNavigate(); // For redirecting after deletion
+  const user = useUser(); // Decrypted user object
+  const userId = user.id; // Current user's ID
 
-  const [isEditing, setIsEditing] = useState(false);
-  const [form, setForm] = useState<Event>(event);
-  const [dragOver, setDragOver] = useState(false);
-  const [imageFile, setImageFile] = useState<FormData | null>(null);
-  const [image, setImage] = useState<File | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
-  console.log(form);
-  // Keep form in sync if event prop changes
+  // Local UI state
+  const [isEditing, setIsEditing] = useState(false); // Toggles edit mode
+  const [form, setForm] = useState<Event>(event); // Editable copy of event data
+  const [dragOver, setDragOver] = useState(false); // Drag-over state for image upload
+  const [imageFile, setImageFile] = useState<FormData | null>(null); // File payload for upload
+  const [image, setImage] = useState<File | null>(null); // Local preview file
+  const [isSubmitting, setIsSubmitting] = useState(false); // Tracks ongoing API calls
+  const [errorMessage, setErrorMessage] = useState(''); // Displays any error message
+
+  // Sync form state if the prop `event` changes
   useEffect(() => {
     setForm(event);
   }, [event]);
 
+  /**
+   * handleChange
+   *
+   * Generic updater for form fields.
+   *
+   * @param field - Key of the Event field to update.
+   * @param value - New value for that field.
+   */
   const handleChange = <K extends keyof Event>(field: K, value: Event[K]) =>
     setForm(prev => ({ ...prev, [field]: value }));
 
+  /**
+   * readFile
+   *
+   * Reads an image file as a Data URL and updates `image_url` in form state.
+   *
+   * @param file - File object dropped or selected by the user
+   */
   const readFile = (file: File) => {
     if (!file.type.startsWith('image/')) return;
     const reader = new FileReader();
@@ -41,6 +72,12 @@ export default function Info({ event, isOrganizer }: Props) {
     reader.readAsDataURL(file);
   };
 
+  /**
+   * handleFileChange
+   *
+   * Triggered when user selects a file via the file input.
+   * Prepares a FormData payload for upload and updates preview.
+   */
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
@@ -52,20 +89,22 @@ export default function Info({ event, isOrganizer }: Props) {
     readFile(file);
   };
 
+  /**
+   * Drag-and-drop handlers for the upload area.
+   */
   const handleFileDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setDragOver(false);
     const file = e.dataTransfer.files[0];
     if (file) readFile(file);
   }, []);
-
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setDragOver(true);
   };
   const handleDragLeave = () => setDragOver(false);
 
-  // derive relationship
+  // Derive participant/request relationships
   const requests = Array.isArray(form.requests)
     ? (form.requests as Request[])
     : [];
@@ -77,25 +116,29 @@ export default function Info({ event, isOrganizer }: Props) {
     r => r.user_id === userId && r.status === 'pending',
   );
   const isJoined = participants.some(p => p.id === userId);
-  const isOwner = isOrganizer;
+  const isOwner = isOrganizer; // Alias for clarity
 
-  // compute label
+  // Determine the action button label
   const actionLabel = isPending ? 'Cancel' : isJoined ? 'Leave' : 'Request';
 
-  // unified handler
+  /**
+   * handleRequestAction
+   *
+   * Unified handler for request/cancel/leave actions.
+   * Performs optimistic UI update on success.
+   */
   const handleRequestAction = async () => {
     setIsSubmitting(true);
     setErrorMessage('');
 
     try {
       if (!isPending && !isJoined) {
-        // send join request
+        // Send join request
         const res = await handleAPI('/requests', {
           method: 'POST',
           body: JSON.stringify({ eventId: form.id, userId }),
         });
         if (!res.ok) throw new Error('Failed to send request');
-        // optimistic: add a pending request
         setForm(prev => ({
           ...prev,
           requests: [
@@ -104,13 +147,12 @@ export default function Info({ event, isOrganizer }: Props) {
           ],
         }));
       } else if (isPending) {
-        // cancel request
+        // Cancel pending request
         const res = await handleAPI(
           `/requests?userId=${userId}&eventId=${form.id}`,
           { method: 'DELETE' },
         );
         if (!res.ok) throw new Error('Failed to cancel request');
-        // optimistic: remove pending
         setForm(prev => ({
           ...prev,
           requests: (prev.requests || []).filter(
@@ -118,35 +160,36 @@ export default function Info({ event, isOrganizer }: Props) {
           ),
         }));
       } else {
-        // leave event
+        // Leave event
         const res = await handleAPI(`/events/${form.id}/leave`, {
           method: 'POST',
           body: JSON.stringify({ userId }),
         });
         if (!res.ok) throw new Error('Failed to leave event');
-        // optimistic: remove from participants
         setForm(prev => ({
           ...prev,
           participants: (prev.participants || []).filter(p => p.id !== userId),
         }));
       }
     } catch (err: unknown) {
-      if (err instanceof Error) {
-        setErrorMessage(err.message);
-      } else {
-        setErrorMessage('An unknown error occurred');
-      }
+      setErrorMessage(
+        err instanceof Error ? err.message : 'An unknown error occurred',
+      );
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Organizer–only handlers
+  /**
+   * handleSave (Organizer only)
+   *
+   * Uploads a new image if present, then updates the event via API.
+   * Exits edit mode on success.
+   */
   const handleSave = async () => {
+    setIsSubmitting(true);
+    setErrorMessage('');
     try {
-      setIsSubmitting(true);
-      setErrorMessage('');
-
       let imageUrl = form.image_url;
       if (imageFile) {
         const uploadRes = await fetch('http://localhost:5000/image-upload', {
@@ -169,29 +212,36 @@ export default function Info({ event, isOrganizer }: Props) {
       setForm(prev => ({ ...prev, image_url: imageUrl }));
       setIsEditing(false);
     } catch (err: unknown) {
-      if (err instanceof Error) {
-        console.error(err);
-        setErrorMessage(err.message);
-      } else {
-        console.error('An unknown error occurred', err);
-        setErrorMessage('An unknown error occurred');
-      }
+      setErrorMessage(
+        err instanceof Error ? err.message : 'An unknown error occurred',
+      );
+      console.error(err);
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  /**
+   * handleCancelEdit
+   *
+   * Reverts form state to original event and exits edit mode.
+   */
   const handleCancelEdit = () => {
     setForm(event);
     setIsEditing(false);
     setErrorMessage('');
   };
 
+  /**
+   * handleDelete (Organizer only)
+   *
+   * Deletes the event after confirmation and navigates away.
+   */
   const handleDelete = async () => {
     if (!window.confirm('Delete this event?')) return;
+    setIsSubmitting(true);
+    setErrorMessage('');
     try {
-      setIsSubmitting(true);
-      setErrorMessage('');
       const res = await handleAPI(`/events/${form.id}`, { method: 'DELETE' });
       if (!res.ok) {
         const err = await res.json();
@@ -199,13 +249,10 @@ export default function Info({ event, isOrganizer }: Props) {
       }
       navigate('/my-events');
     } catch (err: unknown) {
-      if (err instanceof Error) {
-        console.error(err);
-        setErrorMessage(err.message);
-      } else {
-        console.error('An unknown error occurred', err);
-        setErrorMessage('An unknown error occurred');
-      }
+      setErrorMessage(
+        err instanceof Error ? err.message : 'An unknown error occurred',
+      );
+      console.error(err);
     } finally {
       setIsSubmitting(false);
     }
@@ -213,7 +260,7 @@ export default function Info({ event, isOrganizer }: Props) {
 
   return (
     <div className="space-y-4">
-      {/* Header & Actions */}
+      {/* Header: Title or editable input + action buttons */}
       <div className="flex flex-col-reverse md:flex-row md:items-center md:justify-between">
         {isEditing ? (
           <input
@@ -259,16 +306,16 @@ export default function Info({ event, isOrganizer }: Props) {
         </div>
       </div>
 
-      {/* Error */}
+      {/* Error message display */}
       {errorMessage && (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
           {errorMessage}
         </div>
       )}
 
-      {/* Content */}
+      {/* Main content: image + details grid */}
       <div className="flex flex-col space-y-4 md:flex-row md:space-x-8">
-        {/* Image / Upload */}
+        {/* Image or upload area */}
         <div>
           {isEditing ? (
             <>
@@ -316,7 +363,7 @@ export default function Info({ event, isOrganizer }: Props) {
           )}
         </div>
 
-        {/* Details Grid */}
+        {/* Details grid for description, dates, capacity, etc. */}
         <div className="flex-1 space-y-4">
           {isEditing ? (
             <textarea
@@ -330,7 +377,7 @@ export default function Info({ event, isOrganizer }: Props) {
           )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Date */}
+            {/* Start Date Field */}
             <div>
               <label className="font-medium text-gray-600">Date</label>
               {isEditing ? (
@@ -355,7 +402,7 @@ export default function Info({ event, isOrganizer }: Props) {
               )}
             </div>
 
-            {/* End Time */}
+            {/* End Time Field */}
             <div>
               <label className="font-medium text-gray-600">End Time</label>
               {isEditing ? (
@@ -379,7 +426,7 @@ export default function Info({ event, isOrganizer }: Props) {
               )}
             </div>
 
-            {/* Type */}
+            {/* Public/Private Selector */}
             <div>
               <label className="font-medium text-gray-600">Type</label>
               {isEditing ? (
@@ -400,7 +447,7 @@ export default function Info({ event, isOrganizer }: Props) {
               )}
             </div>
 
-            {/* Capacity */}
+            {/* Capacity Field */}
             <div>
               <label className="font-medium text-gray-600">Capacity</label>
               {isEditing ? (
@@ -420,7 +467,7 @@ export default function Info({ event, isOrganizer }: Props) {
               )}
             </div>
 
-            {/* Location */}
+            {/* Location Field */}
             <div className="md:col-span-2">
               <label className="font-medium text-gray-600">Location</label>
               {isEditing ? (

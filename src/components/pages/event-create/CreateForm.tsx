@@ -1,13 +1,20 @@
-// src/components/forms/CreateForm.tsx
+// src/components/pages/event-create/CreateForm.tsx
+
 import { useState, ChangeEvent, FormEvent } from 'react';
 import Button from '../../ui/Button';
 import { handleAPI } from '../../../handlers/api-handler';
 import useUser from '../../../hooks/redux/useUser';
 
+/////////////////////////////
+// Time Validation Regex
+/////////////////////////////
+/** Matches 24-hour time in "HH:MM" format (00–23 for hours, 00–59 for minutes) */
 const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
 
 export default function CreateForm() {
-  // compute today's date for min
+  /////////////////////////////
+  // Compute minimum date for date picker (today)
+  /////////////////////////////
   const [minDate] = useState(() => {
     const d = new Date();
     const year = d.getFullYear();
@@ -16,6 +23,9 @@ export default function CreateForm() {
     return `${year}-${month}-${day}`;
   });
 
+  /////////////////////////////
+  // Form field state
+  /////////////////////////////
   const [eventType, setEventType] = useState<'Public' | 'Private'>('Public');
   const [startTime, setStartTime] = useState('');
   const [endTime, setEndTime] = useState('');
@@ -27,7 +37,9 @@ export default function CreateForm() {
   const [imageFile, setImageFile] = useState<FormData | null>(null);
   const [image, setImage] = useState<File | null>(null);
 
-  // Validation error states
+  /////////////////////////////
+  // Validation error state
+  /////////////////////////////
   const [startTimeError, setStartTimeError] = useState('');
   const [endTimeError, setEndTimeError] = useState('');
   const [nameError, setNameError] = useState('');
@@ -37,12 +49,19 @@ export default function CreateForm() {
   const [descriptionError, setDescriptionError] = useState('');
   const [imageError, setImageError] = useState('');
 
-  // Backend error
+  /////////////////////////////
+  // Backend error state
+  /////////////////////////////
   const [backendError, setBackendError] = useState('');
 
+  /////////////////////////////
+  // Current user from Redux (for owner_id)
+  /////////////////////////////
   const user = useUser();
 
-  // Validator functions
+  /////////////////////////////
+  // Field validators
+  /////////////////////////////
   const validateStartTime = (value: string) => {
     if (!value) {
       setStartTimeError('Start time is required');
@@ -63,7 +82,9 @@ export default function CreateForm() {
     }
   };
 
-  // Handlers
+  /////////////////////////////
+  // Change handlers with validation
+  /////////////////////////////
   const handleStartTimeChange = (value: string) => {
     setStartTime(value);
     validateStartTime(value);
@@ -102,6 +123,9 @@ export default function CreateForm() {
     setDescriptionError(value.trim() ? '' : 'Description is required');
   };
 
+  /////////////////////////////
+  // File input handler
+  /////////////////////////////
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files && files.length > 0) {
@@ -113,6 +137,9 @@ export default function CreateForm() {
     }
   };
 
+  /////////////////////////////
+  // Form validity check
+  /////////////////////////////
   const isFormValid = () => {
     return (
       !startTimeError &&
@@ -135,11 +162,14 @@ export default function CreateForm() {
     );
   };
 
+  /////////////////////////////
+  // Submit handler
+  /////////////////////////////
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    setBackendError(''); // clear previous backend error
+    setBackendError(''); // Clear previous backend error
 
-    // Trigger all validations
+    // Trigger all field validations
     validateStartTime(startTime);
     validateEndTime(endTime);
     setNameError(name.trim() ? '' : 'Event name is required');
@@ -154,7 +184,7 @@ export default function CreateForm() {
     if (!isFormValid()) return;
 
     try {
-      // 1) Upload image
+      // 1) Upload image to external service
       const uploadRes = await fetch('http://localhost:5000/image-upload', {
         method: 'POST',
         body: imageFile!,
@@ -165,7 +195,7 @@ export default function CreateForm() {
       }
       const { url } = await uploadRes.json();
 
-      // 2) Create event
+      // 2) Create event via API
       const payload = {
         name,
         start_time: `${date}T${startTime}:00`,
@@ -192,20 +222,21 @@ export default function CreateForm() {
         return;
       }
 
-      // success: redirect
+      // On success, redirect to the new event’s detail page
       window.location.href = `/event/${result.data.id}`;
     } catch (err: unknown) {
-      if (err instanceof Error) {
-        setBackendError(err.message || 'An unexpected error occurred');
-      } else {
-        setBackendError('An unexpected error occurred');
-      }
+      setBackendError(
+        err instanceof Error ? err.message : 'An unexpected error occurred',
+      );
     }
   };
 
+  /////////////////////////////
+  // Render form
+  /////////////////////////////
   return (
     <form onSubmit={handleSubmit} className="flex flex-1 w-full space-x-4">
-      {/* Left side: image & time inputs */}
+      {/* Left column: image upload & time inputs */}
       <div className="flex flex-col items-start space-y-2.5">
         <label className="w-40 h-40 border-2 border-dashed border-gray-300 flex items-center justify-center cursor-pointer overflow-hidden">
           <input
@@ -253,9 +284,9 @@ export default function CreateForm() {
         </div>
       </div>
 
-      {/* Right side: other fields */}
+      {/* Right column: event details */}
       <div className="flex flex-1 flex-col space-y-4">
-        {/* Event type */}
+        {/* Event type selector */}
         <div className="flex items-center space-x-6">
           {(['Public', 'Private'] as const).map(type => (
             <label key={type} className="flex items-center space-x-2">
@@ -342,10 +373,10 @@ export default function CreateForm() {
           )}
         </div>
 
-        {/* Backend error */}
+        {/* Backend error message */}
         {backendError && <p className="text-red-500 text-sm">{backendError}</p>}
 
-        {/* Submit */}
+        {/* Submit button */}
         <Button type="submit" disabled={!isFormValid()}>
           Submit
         </Button>

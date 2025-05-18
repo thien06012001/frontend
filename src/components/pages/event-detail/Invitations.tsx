@@ -1,9 +1,19 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Invitation } from '../../../types';
-import { handleAPI } from '../../../handlers/api-handler';
-import { useParams } from 'react-router';
-import { useFetch } from '../../../hooks/useFetch';
+// src/components/pages/invitations/Invitations.tsx
 
+import { useEffect, useMemo, useState } from 'react';
+import { Invitation } from '../../../types'; // Invitation data model
+import { handleAPI } from '../../../handlers/api-handler'; // API helper for HTTP requests
+import { useParams } from 'react-router'; // Hook to read URL parameters
+import { useFetch } from '../../../hooks/useFetch'; // Custom hook for data fetching
+
+/**
+ * formatDate
+ *
+ * Converts an ISO date string into "DD/MM/YYYY" format.
+ *
+ * @param isoString - The ISO-formatted date string
+ * @returns Formatted date string in "DD/MM/YYYY"
+ */
 function formatDate(isoString: string) {
   const d = new Date(isoString);
   const day = d.getDate().toString().padStart(2, '0');
@@ -12,25 +22,43 @@ function formatDate(isoString: string) {
   return `${day}/${month}/${year}`;
 }
 
+/**
+ * Invitations Component
+ *
+ * Manages and displays a paginated, searchable list of invitations for an event.
+ * - Fetches initial invitations via `useFetch`.
+ * - Allows sending new invitations by email.
+ * - Supports removal of existing invitations.
+ */
 export default function Invitations() {
-  const { id } = useParams<{ id: string }>();
+  const { id } = useParams<{ id: string }>(); // Event ID from URL
   const { data: invitationsData } = useFetch(`/events/${id}/invitations`, {
     method: 'GET',
   });
 
+  // State: full list of invitations
   const [invitations, setInvitations] = useState<Invitation[]>([]);
+  // Populate invitations once fetch completes
   useEffect(() => {
     if (invitationsData) {
       setInvitations(invitationsData.data);
     }
   }, [invitationsData]);
 
+  // State: filter by email substring
   const [search, setSearch] = useState('');
+  // State: email input for sending new invitations
   const [emailInput, setEmailInput] = useState('');
+  // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [inputPage, setInputPage] = useState(1);
-  const pageSize = 10;
+  const pageSize = 10; // Items per page
 
+  /**
+   * filtered
+   *
+   * Memoized array of invitations whose email contains the `search` term.
+   */
   const filtered = useMemo(
     () =>
       invitations.filter(inv =>
@@ -38,44 +66,52 @@ export default function Invitations() {
       ),
     [search, invitations],
   );
+
+  // Compute pagination metrics
   const totalPages = Math.ceil(filtered.length / pageSize);
   const paginated = filtered.slice(
     (currentPage - 1) * pageSize,
     currentPage * pageSize,
   );
 
+  /**
+   * handleSend
+   *
+   * Sends a new invitation to the specified email.
+   * - Validates non-empty input.
+   * - Alerts on error or adds new invitation to state on success.
+   */
   const handleSend = async () => {
-    if (!emailInput.trim()) return;
+    const email = emailInput.trim();
+    if (!email) return;
 
     try {
       const res = await handleAPI(`/events/${id}/invitations`, {
         method: 'POST',
-        body: JSON.stringify({ email: emailInput.trim() }),
+        body: JSON.stringify({ email }),
       });
 
       if (!res.ok) {
-        // try to extract backend error
+        // Extract backend error message if available
         type ErrorResponse = { error?: string; message?: string };
         const data: ErrorResponse = await res.json().catch(() => ({}));
-        const msg =
-          (data.error as string) ||
-          (data.message as string) ||
-          'Failed to send invitation';
+        const msg = data.error || data.message || 'Failed to send invitation';
         alert(msg);
         return;
       }
 
-      // success path
+      // On success, prepend the new invitation to state
       const newInvitation = await res.json();
       setInvitations(prev => [
         {
-          user: { email: emailInput.trim() },
-          ...newInvitation,
+          id: newInvitation.id,
+          user: { email },
           status: 'pending',
           created_at: new Date().toISOString(),
-        },
+        } as Invitation,
         ...prev,
       ]);
+      // Reset input and pagination
       setEmailInput('');
       setCurrentPage(1);
       setInputPage(1);
@@ -85,6 +121,15 @@ export default function Invitations() {
     }
   };
 
+  /**
+   * handleRemove
+   *
+   * Deletes an invitation by ID.
+   * - Removes from UI on success.
+   * - Alerts with backend message on failure.
+   *
+   * @param invId - Invitation ID to remove
+   */
   const handleRemove = async (invId: string) => {
     const res = await handleAPI(`/invitations/${invId}`, {
       method: 'DELETE',
@@ -93,17 +138,19 @@ export default function Invitations() {
       setInvitations(prev => prev.filter(inv => inv.id !== invId));
     } else {
       type ErrorResponse = { error?: string; message?: string };
-      const data: ErrorResponse = await res
-        .json()
-        .catch(() => ({}) as ErrorResponse);
-      const msg =
-        (data.error as string) ||
-        (data.message as string) ||
-        'Failed to remove invitation';
+      const data: ErrorResponse = await res.json().catch(() => ({}));
+      const msg = data.error || data.message || 'Failed to remove invitation';
       alert(msg);
     }
   };
 
+  /**
+   * handlePageChange
+   *
+   * Updates the current page, ensuring it's within valid bounds.
+   *
+   * @param page - Target page number
+   */
   const handlePageChange = (page: number) => {
     if (page < 1 || page > totalPages) return;
     setCurrentPage(page);
@@ -112,7 +159,7 @@ export default function Invitations() {
 
   return (
     <div className="space-y-6 sm:px-0">
-      {/* Title & Count */}
+      {/* Title and total count */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <h2 className="text-xl font-semibold">Invitations</h2>
         <p className="text-sm text-gray-600">
@@ -120,8 +167,9 @@ export default function Invitations() {
         </p>
       </div>
 
-      {/* Search & Send */}
+      {/* Search and send controls */}
       <div className="flex flex-wrap-reverse gap-4 justify-between">
+        {/* Search input */}
         <input
           type="text"
           placeholder="Search invitations..."
@@ -134,6 +182,7 @@ export default function Invitations() {
           className="w-full sm:w-64 border border-primary rounded-md p-2 outline-none"
         />
 
+        {/* Email send controls */}
         <div className="flex flex-col xs:flex-row gap-3">
           <input
             type="email"
@@ -152,7 +201,7 @@ export default function Invitations() {
         </div>
       </div>
 
-      {/* Table */}
+      {/* Invitations table */}
       <div className="overflow-x-auto">
         <table className="w-full min-w-[600px] table-auto border border-gray-200 text-sm">
           <thead className="bg-gray-100">
@@ -166,7 +215,7 @@ export default function Invitations() {
           </thead>
           <tbody>
             {paginated.map((inv, idx) => (
-              <tr key={idx} className="border-t">
+              <tr key={inv.id} className="border-t">
                 <td className="px-3 py-2">
                   {(currentPage - 1) * pageSize + idx + 1}
                 </td>
@@ -198,7 +247,7 @@ export default function Invitations() {
         </table>
       </div>
 
-      {/* Pagination */}
+      {/* Pagination controls */}
       <div className="flex items-center justify-center gap-4">
         <button
           onClick={() => handlePageChange(currentPage - 1)}
@@ -208,6 +257,7 @@ export default function Invitations() {
           Prev
         </button>
 
+        {/* Page input / total indicator */}
         <div className="flex items-center space-x-2">
           <input
             type="number"

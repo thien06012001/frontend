@@ -1,35 +1,51 @@
+// src/components/pages/event-detail/Discussion.tsx
+
 import { useEffect, useState } from 'react';
-import { Post } from '../../../types';
-import useUser from '../../../hooks/redux/useUser';
-import { handleAPI } from '../../../handlers/api-handler';
-import { useParams } from 'react-router';
-import { useFetch } from '../../../hooks/useFetch';
+import { useParams } from 'react-router'; // Hook to access route parameters
+import useUser from '../../../hooks/redux/useUser'; // Hook to get current user info
+import { handleAPI } from '../../../handlers/api-handler'; // API helper for HTTP requests
+import { useFetch } from '../../../hooks/useFetch'; // Custom hook to fetch data
+import { Post } from '../../../types'; // Type definition for discussion posts
 
 type Props = {
-  isOrganizer: boolean;
+  isOrganizer: boolean; // Flag indicating if the current user can moderate
 };
 
-function Discussion({ isOrganizer }: Props) {
-  const { id } = useParams();
+/**
+ * Discussion Component
+ *
+ * Displays the event’s forum threads (posts) and allows:
+ * - Organizers or post owners to delete threads.
+ * - Any user to start a new thread.
+ * - Users to reply to threads and delete their own replies.
+ */
+export default function Discussion({ isOrganizer }: Props) {
+  const { id } = useParams<{ id: string }>(); // Event ID from URL
   const { data: postsData } = useFetch(`/events/${id}/discussions`, {
-    method: 'GET',
+    method: 'GET', // Fetch existing discussion posts
   });
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [newTitle, setNewTitle] = useState('');
-  const [newContent, setNewContent] = useState('');
-  const [replyInputs, setReplyInputs] = useState<Record<string, string>>({});
-  const [showReplyBox, setShowReplyBox] = useState<Record<string, boolean>>({});
-  const [showReplies, setShowReplies] = useState<Record<string, boolean>>({});
+  const [posts, setPosts] = useState<Post[]>([]); // Local state for thread list
+  const [newTitle, setNewTitle] = useState(''); // Controlled input for new thread title
+  const [newContent, setNewContent] = useState(''); // Controlled input for new thread content
+  const [replyInputs, setReplyInputs] = useState<Record<string, string>>({}); // Controlled reply inputs per post
+  const [showReplyBox, setShowReplyBox] = useState<Record<string, boolean>>({}); // Toggle reply textarea visibility
+  const [showReplies, setShowReplies] = useState<Record<string, boolean>>({}); // Toggle replies list visibility
 
-  const user = useUser();
-  const userId = user.id;
+  const user = useUser(); // Current user object
+  const userId = user.id; // ID of current user
 
+  // Populate `posts` when fetch completes
   useEffect(() => {
     if (postsData) {
       setPosts(postsData.data);
     }
   }, [postsData]);
 
+  /**
+   * handleCreateThread
+   *
+   * Creates a new forum thread via POST /posts and prepends it to state.
+   */
   const handleCreateThread = async () => {
     const res = await handleAPI('/posts', {
       method: 'POST',
@@ -46,8 +62,8 @@ function Discussion({ isOrganizer }: Props) {
       setPosts(prev => [
         {
           ...newPost.data,
-          author: user, // fallback: use current user
-          comments: [],
+          author: user, // Use current user as fallback author
+          comments: [], // Initialize empty comments array
         },
         ...prev,
       ]);
@@ -56,14 +72,15 @@ function Discussion({ isOrganizer }: Props) {
     }
   };
 
+  /**
+   * handleReply
+   *
+   * Posts a new comment under a specific thread and updates state.
+   */
   const handleReply = async (postId: string, content: string) => {
     const res = await handleAPI('/comments', {
       method: 'POST',
-      body: JSON.stringify({
-        content,
-        postId,
-        userId,
-      }),
+      body: JSON.stringify({ content, postId, userId }),
     });
 
     if (res.ok) {
@@ -77,23 +94,26 @@ function Discussion({ isOrganizer }: Props) {
                   ...post.comments,
                   {
                     ...newComment.data,
-                    user: user, // fallback
+                    user: user, // Use current user as fallback commenter
                   },
                 ],
               }
             : post,
         ),
       );
+      // Clear reply input and hide box for this post
       setReplyInputs(prev => ({ ...prev, [postId]: '' }));
       setShowReplyBox(prev => ({ ...prev, [postId]: false }));
     }
   };
 
+  /**
+   * handleDeleteReply
+   *
+   * Deletes a comment and filters it out of local state.
+   */
   const handleDeleteReply = async (replyId: string) => {
-    const res = await handleAPI(`/comments/${replyId}`, {
-      method: 'DELETE',
-    });
-
+    const res = await handleAPI(`/comments/${replyId}`, { method: 'DELETE' });
     if (res.ok) {
       setPosts(prev =>
         prev.map(post => ({
@@ -104,11 +124,13 @@ function Discussion({ isOrganizer }: Props) {
     }
   };
 
+  /**
+   * handleDeletePost
+   *
+   * Deletes an entire thread and removes it from state.
+   */
   const handleDeletePost = async (postId: string) => {
-    const res = await handleAPI(`/posts/${postId}`, {
-      method: 'DELETE',
-    });
-
+    const res = await handleAPI(`/posts/${postId}`, { method: 'DELETE' });
     if (res.ok) {
       setPosts(prev => prev.filter(post => post.id !== postId));
     }
@@ -116,9 +138,10 @@ function Discussion({ isOrganizer }: Props) {
 
   return (
     <div className="space-y-6">
+      {/* Heading */}
       <h2 className="text-xl font-semibold">Event Forum</h2>
 
-      {/* Create New Thread */}
+      {/* New Thread Form */}
       <div className="space-y-2 border p-4 rounded-md bg-white">
         <h3 className="font-medium">Start a Discussion</h3>
         <input
@@ -151,6 +174,7 @@ function Discussion({ isOrganizer }: Props) {
             key={post.id}
             className="border border-gray-300 rounded-md p-4 bg-white space-y-2"
           >
+            {/* Thread Content */}
             <div>
               <h4 className="text-lg font-semibold">{post.title}</h4>
               <p className="text-gray-800 whitespace-pre-line">
@@ -159,6 +183,7 @@ function Discussion({ isOrganizer }: Props) {
               <div className="text-sm text-gray-500">
                 Posted by {post.author?.name || 'Unknown'} • {post.created_at}
               </div>
+              {/* Delete thread if owner or organizer */}
               {(post.user_id === userId || isOrganizer) && (
                 <button
                   onClick={() => handleDeletePost(post.id)}
@@ -169,7 +194,7 @@ function Discussion({ isOrganizer }: Props) {
               )}
             </div>
 
-            {/* Replies */}
+            {/* Replies Toggle */}
             {post.comments.length > 0 && (
               <div className="mt-2">
                 <button
@@ -185,7 +210,6 @@ function Discussion({ isOrganizer }: Props) {
                     ? 'Hide replies'
                     : `Show ${post.comments.length} replies`}
                 </button>
-
                 {showReplies[post.id] && (
                   <div className="ml-4 mt-2 border-l border-gray-200 pl-4 space-y-2">
                     {post.comments.map(comment => (
@@ -195,6 +219,7 @@ function Discussion({ isOrganizer }: Props) {
                           Reply by {comment.user?.name || 'Unknown'} •{' '}
                           {comment.created_at}
                         </div>
+                        {/* Delete reply if commenter or organizer */}
                         {(comment.user_id === userId || isOrganizer) && (
                           <button
                             onClick={() => handleDeleteReply(comment.id)}
@@ -210,7 +235,7 @@ function Discussion({ isOrganizer }: Props) {
               </div>
             )}
 
-            {/* Reply Box */}
+            {/* Reply Box Toggle */}
             <div className="mt-2">
               <button
                 onClick={() =>
@@ -223,7 +248,6 @@ function Discussion({ isOrganizer }: Props) {
               >
                 {showReplyBox[post.id] ? 'Cancel' : 'Reply'}
               </button>
-
               {showReplyBox[post.id] && (
                 <div className="mt-2">
                   <textarea
@@ -254,5 +278,3 @@ function Discussion({ isOrganizer }: Props) {
     </div>
   );
 }
-
-export default Discussion;

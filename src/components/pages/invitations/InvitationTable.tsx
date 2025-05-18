@@ -1,58 +1,73 @@
 // src/components/pages/invitations/InvitationTable.tsx
 
-import { Invitation } from '../../../types'; // Import the Invitation type definition
-import { formatDate } from '../../../libs/utils'; // Utility for formatting dates
+import { Invitation } from '../../../types'; // Type definition for invitation data
+import { formatDate } from '../../../libs/utils'; // Utility to format ISO date strings
 
-// Props accepted by the InvitationTable component
+/**
+ * Props for InvitationTable
+ *
+ * @property invitations - Array of Invitation objects to render
+ * @property onResponse  - Callback invoked when accepting or rejecting an invitation
+ */
 interface InvitationTableProps {
-  invitations: Invitation[]; // Array of invitations to display
-  onResponse: (id: string, action: 'accept' | 'reject') => void; // Handler for accept/reject actions
+  invitations: Invitation[];
+  onResponse: (id: string, action: 'accept' | 'reject') => void;
 }
 
+/**
+ * InvitationTable
+ *
+ * Renders a responsive table of event invitations with actions.
+ * - Displays event name, invitation date, event date.
+ * - Shows "Accept" and "Reject" buttons for pending invites.
+ * - Shows a status badge for already responded invites.
+ */
 export default function InvitationTable({
   invitations,
   onResponse,
 }: InvitationTableProps) {
   return (
-    // Container enables horizontal scrolling on small screens
+    // Enable horizontal scroll on narrow viewports
     <div className="overflow-x-auto">
       <table className="w-full min-w-[640px] table-auto border border-gray-200 text-sm rounded-md">
         {/* Table header */}
         <thead className="bg-gray-100 text-left">
           <tr>
+            {/* Event Name column */}
             <th className="w-[35%] px-4 py-2">Event Name</th>
-            {/* Hidden on very small screens */}
+            {/* Invitation date column, hidden on very small screens */}
             <th className="hidden sm:table-cell w-[20%] px-4 py-2">
               Invited At
             </th>
+            {/* Event start date column */}
             <th className="w-[20%] px-4 py-2">Event Date</th>
+            {/* Actions column for accept/reject buttons or status badge */}
             <th className="w-[25%] px-4 py-2">Actions</th>
           </tr>
         </thead>
 
         {/* Table body */}
         <tbody>
-          {/* Map over invitations and render each as a row */}
           {invitations.map(invite => (
             <tr key={invite.id} className="border-t border-gray-200">
               {/* Event name cell */}
               <td className="px-4 py-2">{invite.event.name}</td>
 
-              {/* Invitation date, hidden on small screens */}
+              {/* Invitation creation date cell (hidden on small screens) */}
               <td className="hidden sm:table-cell px-4 py-2 whitespace-nowrap">
                 {formatDate(invite.created_at)}
               </td>
 
-              {/* Event start date */}
+              {/* Event start time cell */}
               <td className="px-4 py-2 whitespace-nowrap">
                 {formatDate(invite.event.start_time)}
               </td>
 
-              {/* Actions cell: accept/reject buttons or status badge */}
+              {/* Actions cell */}
               <td className="px-4 py-2 space-x-2 flex flex-wrap">
                 {invite.status === 'pending' ? (
                   <>
-                    {/* Accept button */}
+                    {/* Accept button for pending invitations */}
                     <button
                       onClick={() => onResponse(invite.id, 'accept')}
                       className="px-3 py-1 rounded bg-green-500 hover:bg-green-600 text-white text-sm"
@@ -60,7 +75,7 @@ export default function InvitationTable({
                       Accept
                     </button>
 
-                    {/* Reject button */}
+                    {/* Reject button for pending invitations */}
                     <button
                       onClick={() => onResponse(invite.id, 'reject')}
                       className="px-3 py-1 rounded bg-red-500 hover:bg-red-600 text-white text-sm"
@@ -69,7 +84,7 @@ export default function InvitationTable({
                     </button>
                   </>
                 ) : (
-                  // If already responded, show status badge
+                  // Status badge for accepted or rejected invitations
                   <span
                     className={`text-xs font-semibold px-2 py-1 rounded ${
                       invite.status === 'accepted'

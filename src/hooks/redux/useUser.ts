@@ -1,30 +1,59 @@
+// src/hooks/redux/useUser.ts
+
 import { useSelector } from 'react-redux';
 import { RootState } from './store';
 import { SECRET_KEY } from '../../constants/urls';
 
+/**
+ * decrypt
+ *
+ * De-obfuscates a base64-encoded, XOR-encrypted string using a shared secret key.
+ *
+ * @param encoded - Base64-encoded string to decrypt.
+ * @returns The original plaintext string.
+ */
 const decrypt = (encoded: string): string => {
-  const text = atob(encoded); // base64 decode
+  // Decode from Base64 to raw binary string
+  const text = atob(encoded);
+
   let result = '';
+  // XOR each character code with the corresponding key character code
   for (let i = 0; i < text.length; i++) {
-    const t = text.charCodeAt(i);
-    const k = SECRET_KEY.charCodeAt(i % SECRET_KEY.length);
-    result += String.fromCharCode(t ^ k);
+    const encryptedCharCode = text.charCodeAt(i);
+    const keyCharCode = SECRET_KEY.charCodeAt(i % SECRET_KEY.length);
+    // Append decrypted character to result
+    result += String.fromCharCode(encryptedCharCode ^ keyCharCode);
   }
+
   return result;
 };
 
-// Custom hook to access user information from the Redux store
+/**
+ * useUser
+ *
+ * Custom React hook to retrieve the current user object from Redux state.
+ * - Expects a `user.token` that contains a base64 + XOR-encrypted JSON payload.
+ * - Returns `null` if no valid user token is present or decryption/parsing fails.
+ *
+ * @returns The parsed user object or `null` if unauthenticated or on error.
+ */
 export const useUser = () => {
+  // Select the user slice from the Redux store
   const user = useSelector((state: RootState) => state.users.user);
 
-  if (!user || !user.token) return null; // ✅ graceful fallback
+  // If no user or no token is available, return null (unauthenticated)
+  if (!user || !user.token) {
+    return null;
+  }
 
   try {
-    const res = decrypt(user.token);
-    const parsedUser = JSON.parse(res);
+    // Decrypt and parse the token payload
+    const decrypted = decrypt(user.token);
+    const parsedUser = JSON.parse(decrypted);
     return parsedUser;
   } catch (err) {
-    console.error('Failed to decrypt user token:', err);
+    // Log decryption/parsing errors and fallback to null
+    console.error('Failed to decrypt or parse user token:', err);
     return null;
   }
 };

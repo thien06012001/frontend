@@ -1,73 +1,109 @@
+// src/components/forms/PaginationInput.tsx
+
 import React, { useState, useEffect, KeyboardEvent } from 'react';
 
-// Props for the pagination input component
+/////////////////////////////
+// Props Definition
+/////////////////////////////
+
+/**
+ * PaginationInputProps
+ *
+ * @property currentPage   - The currently active page index (1-based).
+ * @property totalPages    - Total number of available pages.
+ * @property onPageChange  - Callback invoked with the new page number when it changes.
+ */
 interface PaginationInputProps {
-  currentPage: number; // The currently active page
-  totalPages: number; // The total number of pages available
-  onPageChange: (page: number) => void; // Callback to notify parent of a page change
+  currentPage: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
 }
 
+/////////////////////////////
+// Component Definition
+/////////////////////////////
+
+/**
+ * PaginationInput
+ *
+ * Renders "Prev" and "Next" buttons along with a numeric input to navigate pages.
+ * - Clamps the input within [1, totalPages].
+ * - Syncs local input state when the external currentPage prop changes.
+ * - Commits changes on Enter key press or when the input loses focus.
+ */
 const PaginationInput: React.FC<PaginationInputProps> = ({
   currentPage,
   totalPages,
   onPageChange,
 }) => {
-  // Local state to control the value of the input field
+  // Local state for the controlled page number input
   const [inputPage, setInputPage] = useState(currentPage);
 
-  // Whenever the external currentPage changes, sync it back into local state
+  // Sync local input when parent currentPage changes
   useEffect(() => {
     setInputPage(currentPage);
   }, [currentPage]);
 
-  // Ensure the page number stays within [1, totalPages]
+  /**
+   * clamp
+   *
+   * Restricts a page number to the valid range [1 .. totalPages].
+   *
+   * @param page - Desired page number
+   * @returns Clamped page number within bounds
+   */
   const clamp = (page: number) => Math.min(Math.max(1, page), totalPages);
 
-  // Handle Enter key: clamp and then fire the change callback
+  /**
+   * handleKeyDown
+   *
+   * If the Enter key is pressed, clamps the input value and triggers onPageChange.
+   */
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       onPageChange(clamp(inputPage));
     }
   };
 
-  // On blur (focus leaves the input), also clamp & notify
+  /**
+   * handleBlur
+   *
+   * When the input loses focus, clamps its value and notifies parent.
+   */
   const handleBlur = () => {
     onPageChange(clamp(inputPage));
   };
 
   return (
-    // Container for Prev button, input, and Next button
     <div className="flex items-center justify-center gap-3 pt-2">
-      {/* Previous page button */}
+      {/* Previous page button; disabled on first page */}
       <button
         onClick={() => onPageChange(currentPage - 1)}
-        disabled={currentPage === 1} // Disable on first page
+        disabled={currentPage === 1}
         className="px-3 py-1 border border-primary rounded cursor-pointer disabled:opacity-50 hover:bg-primary hover:text-white"
       >
         Prev
       </button>
 
-      {/* Input + total pages display */}
+      {/* Numeric input with total pages indicator */}
       <div className="flex items-center gap-2">
-        {/* Page number input */}
         <input
           type="number"
           min={1}
           max={totalPages}
           value={inputPage}
-          onChange={e => setInputPage(Number(e.target.value))} // Update local state
-          onKeyDown={handleKeyDown} // Submit on Enter
-          onBlur={handleBlur} // Submit on blur
+          onChange={e => setInputPage(Number(e.target.value))}
+          onKeyDown={handleKeyDown}
+          onBlur={handleBlur}
           className="w-12 text-center border border-gray-300 rounded-md py-1 outline-none"
         />
-        {/* Display total pages */}
         <span className="text-sm text-gray-600">/ {totalPages}</span>
       </div>
 
-      {/* Next page button */}
+      {/* Next page button; disabled on last page */}
       <button
         onClick={() => onPageChange(currentPage + 1)}
-        disabled={currentPage === totalPages} // Disable on last page
+        disabled={currentPage === totalPages}
         className="px-3 py-1 border border-primary cursor-pointer rounded disabled:opacity-50 hover:bg-primary hover:text-white"
       >
         Next
