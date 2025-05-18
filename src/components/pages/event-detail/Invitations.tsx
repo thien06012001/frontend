@@ -67,7 +67,15 @@ export default function Invitations() {
 
       // success path
       const newInvitation = await res.json();
-      setInvitations(prev => [newInvitation.data, ...prev]);
+      setInvitations(prev => [
+        {
+          user: { email: emailInput.trim() },
+          ...newInvitation,
+          status: 'pending',
+          created_at: new Date().toISOString(),
+        },
+        ...prev,
+      ]);
       setEmailInput('');
       setCurrentPage(1);
       setInputPage(1);
@@ -158,7 +166,7 @@ export default function Invitations() {
           </thead>
           <tbody>
             {paginated.map((inv, idx) => (
-              <tr key={inv.id} className="border-t">
+              <tr key={idx} className="border-t">
                 <td className="px-3 py-2">
                   {(currentPage - 1) * pageSize + idx + 1}
                 </td>

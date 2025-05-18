@@ -51,17 +51,19 @@ function EventDetail() {
     [isOrganizer],
   );
 
-  const tabParam = (searchParams.get('tab') as OrganizerView) || 'info';
-  const initialTab: OrganizerView = allowedTabs.includes(tabParam)
-    ? tabParam
-    : 'info';
-  const [activeView, setActiveView] = useState<OrganizerView>(initialTab);
+  const [activeView, setActiveView] = useState<OrganizerView>('info');
 
   useEffect(() => {
-    if (!allowedTabs.includes(tabParam)) {
-      setSearchParams({ tab: 'info' });
+    if (!isLoading && event) {
+      const newTab = (searchParams.get('tab') as OrganizerView) || 'info';
+      if (!allowedTabs.includes(newTab)) {
+        setSearchParams({ tab: 'info' });
+        setActiveView('info');
+      } else {
+        setActiveView(newTab);
+      }
     }
-  }, [allowedTabs, tabParam, setSearchParams]);
+  }, [isLoading, event, allowedTabs, searchParams, setSearchParams]);
 
   if (!event && isLoading) {
     return <div>Loading...</div>;
