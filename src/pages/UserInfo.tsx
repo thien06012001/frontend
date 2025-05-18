@@ -1,28 +1,42 @@
 // src/pages/UserInfo.tsx
 
-import { useState, ChangeEvent, FormEvent } from 'react';
+import { useState, ChangeEvent, FormEvent, useEffect } from 'react';
 import useUser from '../hooks/redux/useUser';
 import { handleAPI } from '../handlers/api-handler';
 import { useToast } from '../hooks/context/ToastContext';
+import { useFetch } from '../hooks/useFetch';
 
 interface UserInfoForm {
   email: string;
   name: string;
-  phoneNumber: string;
+  phone: string;
   password: string;
 }
 
 export default function UserInfo() {
   const user = useUser();
   const { showToast } = useToast();
-  console.log(user);
+  const { data } = useFetch(`/users/${user.id}`, {
+    method: 'GET',
+  });
+  console.log(data);
   // initialize form with values from the Redux user
   const [form, setForm] = useState<UserInfoForm>({
     email: user.email,
     name: user.name,
-    phoneNumber: user.phoneNumber || '',
+    phone: '',
     password: '',
   });
+
+  useEffect(() => {
+    if (data) {
+      setForm(prev => ({
+        ...prev,
+        name: data.data.name,
+        phone: data.data.phone || '',
+      }));
+    }
+  }, [data]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -37,14 +51,14 @@ export default function UserInfo() {
     // only send name/phone, and password if non-empty
     const payload: Partial<UserInfoForm> = {
       name: form.name,
-      phoneNumber: form.phoneNumber,
+      phone: form.phone,
     };
     if (form.password) {
       payload.password = form.password;
     }
 
     try {
-      const res = await handleAPI('/users/me', {
+      const res = await handleAPI(`/users/${user.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -94,8 +108,8 @@ export default function UserInfo() {
           <label className="block mb-1 font-medium">Phone Number</label>
           <input
             type="tel"
-            name="phoneNumber"
-            value={form.phoneNumber}
+            name="phone"
+            value={form.phone}
             onChange={handleChange}
             className="w-full border border-gray-300 rounded p-2"
           />
