@@ -111,9 +111,9 @@ export default function ParticipateEvents() {
   }
 
   // Render empty state if no joined events
-  if (participatingEvents.length === 0) {
-    return <div className="p-5">No events joined yet.</div>;
-  }
+  // if (participatingEvents.length === 0) {
+  //   return <div className="p-5">No events joined yet.</div>;
+  // }
 
   return (
     <div className="space-y-3 p-5 border border-gray-200 shadow-md rounded-md mt-5">
