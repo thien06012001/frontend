@@ -24,15 +24,19 @@ interface EventsProps {
  * - Otherwise, shows "Request"
  */
 export default function Events({ events, userId, onAction }: EventsProps) {
+  console.log('Events:', events);
   return (
     <div className="space-y-4">
       {events.map(ev => {
         // Determine if user has a pending join request
-        const isPending = ev.requests.some(
-          r => r.user_id === userId && r.status === 'pending',
-        );
+        const isPending =
+          Array.isArray(ev.requests) &&
+          ev.requests.some(r => r.user_id === userId && r.status === 'pending');
+
         // Determine if user is already a participant
-        const isJoined = ev.participants.some(p => p.id === userId);
+        const isJoined =
+          Array.isArray(ev.participants) &&
+          ev.participants.some(p => p.id === userId);
         // Determine if user is the event owner
         const isOwner = ev.owner_id === userId;
 
