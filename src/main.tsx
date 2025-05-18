@@ -29,6 +29,7 @@ import Invitations from './pages/Invitations';
 import NotificationPage from './pages/Notification';
 import EventDetail from './pages/EventDetail';
 import AdminSetting from './pages/AdminSetting';
+import UserInfo from './pages/UserInfo';
 
 // Configure client-side routing:
 // - The root path ("/") uses <Layout> to wrap child routes with sidebar/header.
@@ -47,6 +48,7 @@ const router = createBrowserRouter([
       { path: '/notifications', element: <NotificationPage /> }, // User notifications
       { path: '/event/:id', element: <EventDetail /> }, // Dynamic event detail view
       { path: '/admin', element: <AdminSetting /> }, // Admin configuration page
+      { path: '/user', element: <UserInfo /> },
     ],
   },
   {

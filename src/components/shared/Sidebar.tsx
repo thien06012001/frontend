@@ -29,6 +29,7 @@ function Sidebar({ isMobile = false, onClose }: SidebarProps) {
     { to: '/my-events', label: 'My Events', icon: 'event-check.svg' },
     { to: '/invitations', label: 'Invitations', icon: 'inbox.png' },
     { to: '/notifications', label: 'Notifications', icon: 'notification.svg' },
+    { to: '/user', label: 'User Info', icon: 'people.png' },
     // admin link only if role === 'admin'
     ...(user?.role === 'admin'
       ? [{ to: '/admin', label: 'Admin Settings', icon: 'dashboard.png' }]
