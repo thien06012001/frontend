@@ -51,10 +51,10 @@ function SignUp() {
 
     if (!res.ok) {
       setErrorMessage(result.error);
+    } else {
+      window.location.href = '/login';
     }
     setIsLoading(false);
-
-    window.location.href = '/login';
   };
 
   return (

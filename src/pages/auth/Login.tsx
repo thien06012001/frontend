@@ -40,12 +40,12 @@ function Login() {
       },
     });
 
-    const result = await res.json();
-
-    const token = result.data.token;
     if (!res.ok) {
+      const result = await res.json();
       setErrorMessage(result.error);
     } else {
+      const result = await res.json();
+      const token = result.data.token;
       // Store user data in local storage
       dispatch(
         setUser({
