@@ -99,7 +99,7 @@ export default function Events({ events, userId, onAction }: EventsProps) {
                   )
                 }
                 className={`w-full md:w-auto text-white ${color} \
-                  py-2 px-4 rounded-md text-sm transition`}
+                  py-2 px-4 rounded-md text-sm transition cursor-pointer`}
               >
                 {label}
               </button>

@@ -3,9 +3,9 @@
 import { useState, useEffect, KeyboardEvent } from 'react';
 
 interface InvitationPaginationProps {
-  currentPage: number; // The currently active page number
-  totalPages: number; // Total number of pages available
-  onPageChange: (page: number) => void; // Callback to inform parent of page changes
+  currentPage: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
 }
 
 export default function InvitationPagination({
@@ -13,60 +13,62 @@ export default function InvitationPagination({
   totalPages,
   onPageChange,
 }: InvitationPaginationProps) {
-  // Local state to track the value in the input field
+  // Local input state
   const [inputPage, setInputPage] = useState(currentPage);
 
-  // Sync local input state whenever the parent currentPage changes
+  // Sync with parent currentPage
   useEffect(() => {
     setInputPage(currentPage);
   }, [currentPage]);
 
-  // Ensure page numbers stay within [1, totalPages]
-  const clamp = (page: number) => Math.min(Math.max(1, page), totalPages);
+  // Never allow fewer than 1 page
+  const effectiveTotalPages = Math.max(1, totalPages);
 
-  // Handle pressing Enter in the input: clamp and propagate the new page
+  // Keep pages in [1, effectiveTotalPages]
+  const clamp = (page: number) =>
+    Math.min(Math.max(1, page), effectiveTotalPages);
+
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       onPageChange(clamp(inputPage));
     }
   };
 
-  // On input blur, clamp and propagate the new page
   const handleBlur = () => {
     onPageChange(clamp(inputPage));
   };
 
   return (
     <div className="flex items-center justify-center gap-3 pt-4">
-      {/* Previous page button */}
+      {/* Prev */}
       <button
-        onClick={() => onPageChange(currentPage - 1)}
-        disabled={currentPage === 1}
-        className="px-3 py-1 border border-primary rounded disabled:opacity-50 hover:bg-primary hover:text-white"
+        onClick={() => onPageChange(clamp(currentPage - 1))}
+        disabled={currentPage <= 1}
+        className="px-3 py-1 border border-primary rounded cursor-pointer  disabled:opacity-50 hover:bg-primary hover:text-white"
       >
         Prev
       </button>
 
-      {/* Page number input with total */}
+      {/* Page input / total */}
       <div className="flex items-center gap-2">
         <input
           type="number"
           min={1}
-          max={totalPages}
+          max={effectiveTotalPages}
           value={inputPage}
-          onChange={e => setInputPage(Number(e.target.value))} // Update local state as user types
-          onKeyDown={handleKeyDown} // Handle Enter key
-          onBlur={handleBlur} // Handle losing focus
+          onChange={e => setInputPage(Number(e.target.value))}
+          onKeyDown={handleKeyDown}
+          onBlur={handleBlur}
           className="w-12 text-center border border-gray-300 rounded-md py-1 outline-none"
         />
-        <span className="text-sm text-gray-600">/ {totalPages}</span>
+        <span className="text-sm text-gray-600">/ {effectiveTotalPages}</span>
       </div>
 
-      {/* Next page button */}
+      {/* Next */}
       <button
-        onClick={() => onPageChange(currentPage + 1)}
-        disabled={currentPage === totalPages}
-        className="px-3 py-1 border border-primary rounded disabled:opacity-50 hover:bg-primary hover:text-white"
+        onClick={() => onPageChange(clamp(currentPage + 1))}
+        disabled={currentPage >= effectiveTotalPages}
+        className="px-3 py-1 border border-primary rounded cursor-pointer  disabled:opacity-50 hover:bg-primary hover:text-white"
       >
         Next
       </button>
