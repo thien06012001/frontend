@@ -22,6 +22,7 @@ function EventTable({
   onSortByDate: () => void;
   sortAsc: boolean;
 }) {
+  console.log('EventTable:', events);
   return (
     <table className="min-w-full table-fixed border border-gray-200 text-sm rounded-md">
       {/* Table header with sortable Date column */}
