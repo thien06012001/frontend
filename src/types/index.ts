@@ -83,4 +83,5 @@ export type Notification = {
   created_at: string;
   updated_at: string;
   isRead: boolean;
+  eventId: string;
 };

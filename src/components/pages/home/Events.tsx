@@ -1,5 +1,6 @@
 // src/components/home/Events.tsx
 
+import { Link } from 'react-router';
 import { formatDate } from '../../../libs/utils';
 import { Event } from '../../../types';
 
@@ -55,7 +56,12 @@ export default function Events({ events, userId, onAction }: EventsProps) {
           >
             {/* Event details section */}
             <div className="flex-1 space-y-2">
-              <p className="block text-lg font-medium">{ev.name}</p>
+              <Link
+                to={`/event/${ev.id}`}
+                className="block text-lg font-medium"
+              >
+                {ev.name}
+              </Link>
               <p className="text-sm text-gray-500">
                 {/* Format start and end times for readability */}
                 {formatDate(ev.start_time)} – {formatDate(ev.end_time)}

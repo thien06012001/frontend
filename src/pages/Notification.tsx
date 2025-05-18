@@ -3,6 +3,7 @@
 import { useFetch } from '../hooks/useFetch';
 import useUser from '../hooks/redux/useUser';
 import { Notification } from '../types';
+import { Link } from 'react-router';
 
 /** Format ISO date string to DD/MM/YYYY */
 function formatDate(isoString: string) {
@@ -51,7 +52,12 @@ export default function NotificationPage() {
             `}
           >
             <div className="space-y-1">
-              <p className="text-sm font-medium break-words">{n.description}</p>
+              <Link
+                to={`/event/${n.eventId}`}
+                className="text-sm font-medium break-words"
+              >
+                {n.description}
+              </Link>
               <div className="text-xs text-gray-400 flex flex-wrap items-center gap-2">
                 <span>{n.title}</span>
                 <span>•</span>

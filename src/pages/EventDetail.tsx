@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect } from 'react';
-import { useParams, Link, useSearchParams, Navigate } from 'react-router';
+import { useParams, Link, useSearchParams } from 'react-router';
 import Info from '../components/pages/event-detail/Info';
 import JoinedMembers from '../components/pages/event-detail/JoinedMembers';
 import Requests from '../components/pages/event-detail/Requests';
@@ -76,10 +76,6 @@ function EventDetail() {
       participant => participant.id === currentUserId,
     ) || event?.owner_id === currentUserId;
 
-  if (!isParticipant) {
-    return <Navigate to="/" />;
-  }
-
   // 4. Handlers and render logic
   const handleTabChange = (tab: OrganizerView) => {
     setActiveView(tab);
@@ -95,10 +91,12 @@ function EventDetail() {
         { label: 'Invitations', value: 'invitations' },
         { label: 'Send Reminder', value: 'reminders' },
       ]
-    : [
-        { label: 'Info', value: 'info' },
-        { label: 'Discussions', value: 'discussions' },
-      ];
+    : isParticipant
+      ? [
+          { label: 'Info', value: 'info' },
+          { label: 'Discussions', value: 'discussions' },
+        ]
+      : [{ label: 'Info', value: 'info' }];
 
   const participants = event.participants || [];
 

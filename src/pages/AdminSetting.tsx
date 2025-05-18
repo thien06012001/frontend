@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/pages/AdminSetting.tsx
 
 import { useState, useEffect, useMemo } from 'react';
