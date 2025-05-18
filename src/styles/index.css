@@ -35,7 +35,9 @@
     margin-bottom: 0;
   }
 }
-
+button {
+  @apply cursor-pointer;
+}
 .animate-slideIn {
   animation: slideIn 0.3s ease forwards;
 }

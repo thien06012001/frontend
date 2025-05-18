@@ -7,12 +7,19 @@ import useUser from '../../../hooks/redux/useUser';
 const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
 
 export default function CreateForm() {
+  // compute today's date for min
+  const [minDate] = useState(() => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  });
+
   const [eventType, setEventType] = useState<'Public' | 'Private'>('Public');
   const [startTime, setStartTime] = useState('');
-  const [name, setName] = useState('');
   const [endTime, setEndTime] = useState('');
-  const [startTimeError, setStartTimeError] = useState('');
-  const [endTimeError, setEndTimeError] = useState('');
+  const [name, setName] = useState('');
   const [capacity, setCapacity] = useState<number | undefined>();
   const [location, setLocation] = useState('');
   const [date, setDate] = useState('');
@@ -20,97 +27,185 @@ export default function CreateForm() {
   const [imageFile, setImageFile] = useState<FormData | null>(null);
   const [image, setImage] = useState<File | null>(null);
 
+  // Validation error states
+  const [startTimeError, setStartTimeError] = useState('');
+  const [endTimeError, setEndTimeError] = useState('');
+  const [nameError, setNameError] = useState('');
+  const [capacityError, setCapacityError] = useState('');
+  const [locationError, setLocationError] = useState('');
+  const [dateError, setDateError] = useState('');
+  const [descriptionError, setDescriptionError] = useState('');
+  const [imageError, setImageError] = useState('');
+
+  // Backend error
+  const [backendError, setBackendError] = useState('');
+
   const user = useUser();
 
-  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
-    console.log('handleFileInput working!');
-    const files = e.target.files;
-
-    if (files) {
-      const formData = new FormData();
-      formData.append('my-image-file', files[0], files[0].name);
-      setImage(files[0]);
-      setImageFile(formData);
+  // Validator functions
+  const validateStartTime = (value: string) => {
+    if (!value) {
+      setStartTimeError('Start time is required');
+    } else if (!timeRegex.test(value)) {
+      setStartTimeError('Invalid time format (HH:MM)');
+    } else {
+      setStartTimeError('');
     }
   };
 
+  const validateEndTime = (value: string) => {
+    if (!value) {
+      setEndTimeError('End time is required');
+    } else if (!timeRegex.test(value)) {
+      setEndTimeError('Invalid time format (HH:MM)');
+    } else {
+      setEndTimeError('');
+    }
+  };
+
+  // Handlers
   const handleStartTimeChange = (value: string) => {
     setStartTime(value);
-    if (!value || timeRegex.test(value)) {
-      setStartTimeError('');
-    } else {
-      setStartTimeError('Invalid time format (HH:MM)');
-    }
+    validateStartTime(value);
   };
 
   const handleEndTimeChange = (value: string) => {
     setEndTime(value);
-    if (!value || timeRegex.test(value)) {
-      setEndTimeError('');
-    } else {
-      setEndTimeError('Invalid time format (HH:MM)');
+    validateEndTime(value);
+  };
+
+  const handleNameChange = (value: string) => {
+    setName(value);
+    setNameError(value.trim() ? '' : 'Event name is required');
+  };
+
+  const handleCapacityChange = (value: string) => {
+    const num = Number(value);
+    setCapacity(num);
+    setCapacityError(
+      !value || isNaN(num) || num < 1 ? 'Capacity must be at least 1' : '',
+    );
+  };
+
+  const handleLocationChange = (value: string) => {
+    setLocation(value);
+    setLocationError(value.trim() ? '' : 'Location is required');
+  };
+
+  const handleDateChange = (value: string) => {
+    setDate(value);
+    setDateError(value ? '' : 'Date is required');
+  };
+
+  const handleDescriptionChange = (value: string) => {
+    setDescription(value);
+    setDescriptionError(value.trim() ? '' : 'Description is required');
+  };
+
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      const form = new FormData();
+      form.append('my-image-file', files[0], files[0].name);
+      setImage(files[0]);
+      setImageFile(form);
+      setImageError('');
     }
+  };
+
+  const isFormValid = () => {
+    return (
+      !startTimeError &&
+      !endTimeError &&
+      !nameError &&
+      !capacityError &&
+      !locationError &&
+      !dateError &&
+      !descriptionError &&
+      !imageError &&
+      startTime &&
+      endTime &&
+      name &&
+      capacity !== undefined &&
+      capacity > 0 &&
+      location &&
+      date &&
+      description &&
+      image
+    );
   };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    let valid = true;
+    setBackendError(''); // clear previous backend error
 
-    if (!timeRegex.test(startTime)) {
-      setStartTimeError('Invalid time format (HH:MM)');
-      valid = false;
+    // Trigger all validations
+    validateStartTime(startTime);
+    validateEndTime(endTime);
+    setNameError(name.trim() ? '' : 'Event name is required');
+    setCapacityError(
+      !capacity || capacity < 1 ? 'Capacity must be at least 1' : '',
+    );
+    setLocationError(location.trim() ? '' : 'Location is required');
+    setDateError(date ? '' : 'Date is required');
+    setDescriptionError(description.trim() ? '' : 'Description is required');
+    setImageError(image ? '' : 'Event image is required');
+
+    if (!isFormValid()) return;
+
+    try {
+      // 1) Upload image
+      const uploadRes = await fetch('http://localhost:5000/image-upload', {
+        method: 'POST',
+        body: imageFile!,
+      });
+      if (!uploadRes.ok) {
+        const errJson = await uploadRes.json();
+        throw new Error(errJson.message || 'Image upload failed');
+      }
+      const { url } = await uploadRes.json();
+
+      // 2) Create event
+      const payload = {
+        name,
+        start_time: `${date}T${startTime}:00`,
+        end_time: `${date}T${endTime}:00`,
+        owner_id: user.id,
+        is_public: eventType === 'Public',
+        location,
+        capacity: capacity || 0,
+        description,
+        image_url: url,
+      };
+
+      const res = await handleAPI('/events', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+        headers: { 'Content-Type': 'application/json' },
+      });
+      const result = await res.json();
+
+      if (!res.ok) {
+        setBackendError(
+          result.error || result.message || 'Failed to create event',
+        );
+        return;
+      }
+
+      // success: redirect
+      window.location.href = `/event/${result.data.id}`;
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setBackendError(err.message || 'An unexpected error occurred');
+      } else {
+        setBackendError('An unexpected error occurred');
+      }
     }
-    if (!timeRegex.test(endTime)) {
-      setEndTimeError('Invalid time format (HH:MM)');
-      valid = false;
-    }
-    if (!valid) return;
-    const userId = user.id;
-    // Convert eventType to isPublic boolean
-    const isPublic = eventType === 'Public';
-
-    const uploadRes = await fetch('http://localhost:5000/image-upload', {
-      method: 'POST',
-      body: imageFile,
-    });
-
-    if (!uploadRes.ok) {
-      console.error('Failed to upload image');
-      return;
-    }
-
-    const uploadData = await uploadRes.json();
-
-    const url = uploadData.url;
-
-    const formData = {
-      name,
-      start_time: `${date}T${startTime}:00`, // ISO-like string
-      end_time: `${date}T${endTime}:00`,
-      owner_id: userId,
-      is_public: isPublic,
-      location,
-      capacity: capacity || 0,
-      image_url: url, // optional, only if your model supports it
-    };
-
-    const res = await handleAPI('/events', {
-      method: 'POST',
-      body: JSON.stringify(formData),
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-
-    const result = await res.json();
-    const data = result.data;
-
-    window.location.href = `/event/${data.id}`;
   };
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-1 w-full space-x-4">
-      {/* Left side: image preview & time inputs */}
+      {/* Left side: image & time inputs */}
       <div className="flex flex-col items-start space-y-2.5">
         <label className="w-40 h-40 border-2 border-dashed border-gray-300 flex items-center justify-center cursor-pointer overflow-hidden">
           <input
@@ -129,10 +224,11 @@ export default function CreateForm() {
             <span className="text-gray-400 text-2xl">🖼️</span>
           )}
         </label>
+        {imageError && <p className="text-red-500 text-sm">{imageError}</p>}
+
         <div className="flex flex-col gap-2">
-          <label className="font-semibold">Time</label>
+          <label className="font-semibold">Start Time (HH:MM)</label>
           <input
-            id="startTime"
             type="text"
             placeholder="e.g. 14:30"
             value={startTime}
@@ -143,11 +239,8 @@ export default function CreateForm() {
             <p className="text-red-500 text-sm">{startTimeError}</p>
           )}
 
-          <label htmlFor="endTime" className="font-semibold">
-            End time (HH:MM)
-          </label>
+          <label className="font-semibold mt-2">End Time (HH:MM)</label>
           <input
-            id="endTime"
             type="text"
             placeholder="e.g. 18:00"
             value={endTime}
@@ -160,9 +253,9 @@ export default function CreateForm() {
         </div>
       </div>
 
-      {/* Right side: other event fields */}
+      {/* Right side: other fields */}
       <div className="flex flex-1 flex-col space-y-4">
-        {/* Event type (radio buttons) */}
+        {/* Event type */}
         <div className="flex items-center space-x-6">
           {(['Public', 'Private'] as const).map(type => (
             <label key={type} className="flex items-center space-x-2">
@@ -182,78 +275,78 @@ export default function CreateForm() {
         {/* Name & capacity */}
         <div className="flex w-full space-x-5">
           <div className="flex flex-col space-y-1 flex-1">
-            <label htmlFor="name" className="font-semibold">
-              Event name
-            </label>
+            <label className="font-semibold">Event Name</label>
             <input
-              value={name}
-              onChange={e => setName(e.target.value)}
-              id="name"
               type="text"
-              className="border border-gray-200 rounded-md p-1"
               placeholder="Enter the name of your event"
+              value={name}
+              onChange={e => handleNameChange(e.target.value)}
+              className="border border-gray-200 rounded-md p-1"
             />
+            {nameError && <p className="text-red-500 text-sm">{nameError}</p>}
           </div>
           <div className="flex flex-col space-y-1">
-            <label htmlFor="capacity" className="font-semibold">
-              Event capacity
-            </label>
+            <label className="font-semibold">Capacity</label>
             <input
-              id="capacity"
               type="number"
-              className="border border-gray-200 rounded-md p-1"
               placeholder="Event capacity"
               value={capacity}
-              onChange={e => setCapacity(Number(e.target.value))}
+              onChange={e => handleCapacityChange(e.target.value)}
+              className="border border-gray-200 rounded-md p-1"
             />
+            {capacityError && (
+              <p className="text-red-500 text-sm">{capacityError}</p>
+            )}
           </div>
         </div>
 
         {/* Location & date */}
         <div className="flex w-full space-x-5">
           <div className="flex flex-col space-y-1 flex-1">
-            <label htmlFor="location" className="font-semibold">
-              Location
-            </label>
+            <label className="font-semibold">Location</label>
             <input
-              id="location"
               type="text"
-              className="border border-gray-200 rounded-md p-1"
               placeholder="Enter the location"
               value={location}
-              onChange={e => setLocation(e.target.value)}
+              onChange={e => handleLocationChange(e.target.value)}
+              className="border border-gray-200 rounded-md p-1"
             />
+            {locationError && (
+              <p className="text-red-500 text-sm">{locationError}</p>
+            )}
           </div>
           <div className="flex flex-col space-y-1">
-            <label htmlFor="date" className="font-semibold">
-              Date
-            </label>
+            <label className="font-semibold">Date</label>
             <input
-              id="date"
               type="date"
-              className="border border-gray-200 rounded-md p-1"
               value={date}
-              onChange={e => setDate(e.target.value)}
+              onChange={e => handleDateChange(e.target.value)}
+              min={minDate}
+              className="border border-gray-200 rounded-md p-1"
             />
+            {dateError && <p className="text-red-500 text-sm">{dateError}</p>}
           </div>
         </div>
 
         {/* Description */}
         <div className="flex flex-col space-y-1 w-full">
-          <label htmlFor="description" className="font-semibold">
-            Description
-          </label>
+          <label className="font-semibold">Description</label>
           <textarea
-            id="description"
             placeholder="Description"
-            className="p-2 border border-gray-200 rounded-md resize-none"
             value={description}
-            onChange={e => setDescription(e.target.value)}
+            onChange={e => handleDescriptionChange(e.target.value)}
+            className="p-2 border border-gray-200 rounded-md resize-none"
           />
+          {descriptionError && (
+            <p className="text-red-500 text-sm">{descriptionError}</p>
+          )}
         </div>
 
-        {/* Submit button */}
-        <Button type="submit" disabled={!!startTimeError || !!endTimeError}>
+        {/* Backend error */}
+        {backendError && <p className="text-red-500 text-sm">{backendError}</p>}
+
+        {/* Submit */}
+        <Button type="submit" disabled={!isFormValid()}>
           Submit
         </Button>
       </div>

@@ -19,7 +19,6 @@ export default function Invitations() {
   });
 
   const [invitations, setInvitations] = useState<Invitation[]>([]);
-
   useEffect(() => {
     if (invitationsData) {
       setInvitations(invitationsData.data);
@@ -39,7 +38,6 @@ export default function Invitations() {
       ),
     [search, invitations],
   );
-
   const totalPages = Math.ceil(filtered.length / pageSize);
   const paginated = filtered.slice(
     (currentPage - 1) * pageSize,
@@ -49,25 +47,52 @@ export default function Invitations() {
   const handleSend = async () => {
     if (!emailInput.trim()) return;
 
-    const res = await handleAPI(`/events/${id}/invitations`, {
-      method: 'POST',
-      body: JSON.stringify({ email: emailInput.trim() }),
-    });
+    try {
+      const res = await handleAPI(`/events/${id}/invitations`, {
+        method: 'POST',
+        body: JSON.stringify({ email: emailInput.trim() }),
+      });
 
-    if (res.ok) {
+      if (!res.ok) {
+        // try to extract backend error
+        type ErrorResponse = { error?: string; message?: string };
+        const data: ErrorResponse = await res.json().catch(() => ({}));
+        const msg =
+          (data.error as string) ||
+          (data.message as string) ||
+          'Failed to send invitation';
+        alert(msg);
+        return;
+      }
+
+      // success path
       const newInvitation = await res.json();
       setInvitations(prev => [newInvitation.data, ...prev]);
       setEmailInput('');
       setCurrentPage(1);
       setInputPage(1);
+    } catch (err) {
+      console.error(err);
+      alert('An unexpected error occurred. Please try again.');
     }
   };
 
   const handleRemove = async (invId: string) => {
-    const res = await handleAPI(`/invitations/${invId}`, { method: 'DELETE' });
-
+    const res = await handleAPI(`/invitations/${invId}`, {
+      method: 'DELETE',
+    });
     if (res.ok) {
       setInvitations(prev => prev.filter(inv => inv.id !== invId));
+    } else {
+      type ErrorResponse = { error?: string; message?: string };
+      const data: ErrorResponse = await res
+        .json()
+        .catch(() => ({}) as ErrorResponse);
+      const msg =
+        (data.error as string) ||
+        (data.message as string) ||
+        'Failed to remove invitation';
+      alert(msg);
     }
   };
 
@@ -89,7 +114,6 @@ export default function Invitations() {
 
       {/* Search & Send */}
       <div className="flex flex-wrap-reverse gap-4 justify-between">
-        {/* Search */}
         <input
           type="text"
           placeholder="Search invitations..."
@@ -101,7 +125,7 @@ export default function Invitations() {
           }}
           className="w-full sm:w-64 border border-primary rounded-md p-2 outline-none"
         />
-        {/* Send Invitation */}
+
         <div className="flex flex-col xs:flex-row gap-3">
           <input
             type="email"
