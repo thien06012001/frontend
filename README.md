@@ -47,6 +47,22 @@ Ensure you have the following installed:
    VITE_SECRET_KEY=<your-secret-key>
    ```
 
+4. Set up environment variables:
+
+   Using these credentials to login as user:
+
+   ```env
+   default@default.com
+   default
+   ```
+
+   Using these credentials to login as admin:
+
+   ```env
+   admin@admin.com
+   admin
+   ```
+
 ## Scripts
 
 Available npm/yarn scripts:
