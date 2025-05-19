@@ -24,7 +24,6 @@ interface EventsProps {
  * - Otherwise, shows "Request"
  */
 export default function Events({ events, userId, onAction }: EventsProps) {
-  console.log('Events:', events);
   return (
     <div className="space-y-4">
       {events.map(ev => {

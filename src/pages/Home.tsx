@@ -44,7 +44,9 @@ export default function Home() {
   useEffect(() => {
     (async () => {
       try {
-        const res = await handleAPI('/events', { method: 'GET' });
+        const res = await handleAPI(`/events?role=${user.role}`, {
+          method: 'GET',
+        });
         if (!res.ok) return;
         const { data } = (await res.json()) as { data: Event[] };
         setEvents(data);
@@ -52,7 +54,7 @@ export default function Home() {
         console.error('Failed to fetch events:', error);
       }
     })();
-  }, []);
+  }, [user.role]);
 
   // Update the URL query string whenever the current page changes
   useEffect(() => {
